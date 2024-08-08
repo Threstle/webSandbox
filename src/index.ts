@@ -1,10 +1,12 @@
 "use strict";
 
-// Import Threejs.
+import "reflect-metadata";
 import * as THREE from 'three';
-
-// Import stats.
 import * as Stats from "stats.js";
+import GUI from 'lil-gui';
+import { contain } from "three/src/extras/TextureUtils";
+import { container } from "./autoinject";
+import { createCamera } from "./camera";
 
 function createWorld() {
   const scene = new THREE.Scene();
@@ -18,156 +20,117 @@ function createWorld() {
   }
 }
 
-function createCamera() {
-  const fov = 45;
-  const aspect = window.innerWidth / window.innerHeight;
-  const near = 0.1;
-  const far = 2000;
-  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.set(0, 0, 500);
-  return camera;
-}
-
 function createRenderer(
   canvas: HTMLCanvasElement,
+  clearColor: number,
   renderSize = { width: window.innerWidth, height: window.innerHeight },
   renderRatio = window.devicePixelRatio
 ) {
   const renderer = new THREE.WebGLRenderer({ canvas });
-  renderer.setClearColor(0xf0f0f0);
+  renderer.setClearColor(clearColor);
   renderer.setPixelRatio(renderRatio);
   renderer.setSize(renderSize.width, renderSize.height);
   return renderer;
 }
 
-function render(scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer, stats: Stats) {
+function render(scene: THREE.Scene, camera: THREE.Camera, renderer: THREE.Renderer, stats: Stats) {
   stats.update();
   renderer.render(scene, camera);
 }
 
-function onWindowResize(camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer, render: () => void) {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  render();
+// function onWindowResize(camera: THREE.Camera, renderer: THREE.Renderer, render: () => void) {
+//   camera.aspect = window.innerWidth / window.innerHeight;
+//   camera.updateProjectionMatrix();
+//   renderer.setSize(window.innerWidth, window.innerHeight);
+//   render();
+// }
+
+function animate(
+  scene: THREE.Scene,
+  camera: THREE.Camera,
+  renderer: THREE.WebGLRenderer,
+  stats: Stats
+) {
+  render(scene, camera, renderer, stats)
+  requestAnimationFrame(animate.bind(this, scene, camera, renderer, stats));
 }
 
 
+function init(
+  canvas: HTMLCanvasElement,
+  initVars: {
+    cameraNear: number,
+    cameraFar: number,
+    clearColor: number,
+  },
+  gui: GUI,
+) {
+  const { cameraNear, cameraFar, clearColor } = initVars;
 
-function init() {
-
-  const canvas = document.createElement("canvas");
   document.body.appendChild(canvas);
-  const renderer = createRenderer(canvas);
-  document.body.appendChild(renderer.domElement);
-
-  const camera = createCamera();
-  const { scene, light } = createWorld();
+  const renderer = createRenderer(canvas, clearColor);
 
   var stats = new Stats();
   stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
   document.body.appendChild(stats.dom);
 
+
+  const camera = createCamera(window.innerWidth, window.innerHeight, cameraNear, cameraFar);
+  camera.position.copy(new THREE.Vector3(0, 0, 500));
+  // const guiCamera = gui.addFolder('Camera');
+  // guiCamera.add(camera.position, 'x', -1000, 1000);
+  // guiCamera.add(camera.position, 'y', -1000, 1000);
+
+  const { scene, light } = createWorld();
+
+
   const cube = new THREE.Mesh(
     new THREE.BoxGeometry(100, 100, 100),
     new THREE.MeshBasicMaterial({ color: 0xff0000 })
   );
+  // const guiCube = gui.addFolder('Cube');
+  // guiCube.add(cube.position, 'x', -1000, 1000);
 
   scene.add(cube);
+  scene.add(light);
 
 
-  render(
-    scene,
-    camera,
-    renderer,
-    stats
-  );
-  
+  const requestId = requestAnimationFrame(animate.bind(this, scene, camera, renderer, stats));
+  // console.log('init');
   // window.addEventListener("resize", onWindowResize.bind(camera,), false);
+  return () => {
 
+    window.cancelAnimationFrame(requestId);
+    cube.geometry.dispose();
+    cube.material.dispose();
+    scene.remove(cube);
+    scene.remove(light);
+    scene.remove(camera);
+    // guiCamera.domElement.remove();
+    // guiCamera.destroy();
+    // guiCube.domElement.remove();
+    // guiCube.destroy();
+    renderer.dispose();
+  }
 }
 
-init();
+const initVars = {
+  cameraNear: 1,
+  cameraFar: 1000,
+  clearColor: 0xf0f0f0,
+}
 
-// function onWindowResize() {
-//   camera.aspect = window.innerWidth / window.innerHeight;
-//   camera.updateProjectionMatrix();
-//   renderer.setSize(window.innerWidth, window.innerHeight);
-//   render();
-// }
+const gui = container.resolve<GUI>("GUI");
+const guiInit = gui.addFolder('Init');
+guiInit.add(initVars, 'cameraNear', 0, 1000);
+guiInit.add(initVars, 'cameraFar', 0, 1000);
+guiInit.addColor(initVars, 'clearColor');
 
-// Scene.
-// var camera, scene, renderer, light;
-// var orbitControls;
+const canvas = document.createElement("canvas");
 
-// // Stats.
-// var stats = new Stats();
-// stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
-// document.body.appendChild(stats.dom);
+const worldDestroy = init(canvas,initVars, gui);
 
-// let cube;
-
-// function init() {
-//   // Camera.
-//   const fov = 45;
-//   const aspect = window.innerWidth / window.innerHeight;
-//   const near = 0.1;
-//   const far = 2000;
-//   camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-//   camera.position.set(0, 0, 500);
-
-//   const canvas = document.createElement("canvas");
-//   document.body.appendChild(canvas);
-//   //const canvas = document.querySelector('#c');
-//   renderer = new THREE.WebGLRenderer({ canvas });
-//   renderer.setClearColor(0xf0f0f0);
-//   renderer.setPixelRatio(window.devicePixelRatio);
-//   renderer.setSize(window.innerWidth, window.innerHeight);
-//   document.body.appendChild(renderer.domElement);
-
-//   window.addEventListener("resize", onWindowResize, false);
-
-//   // Orbit controls.
-//   orbitControls = new OrbitControls(camera, renderer.domElement);
-//   orbitControls.enablePan = true;
-//   orbitControls.enableKeys = false;
-//   orbitControls.update();
-//   orbitControls.addEventListener("change", render);
-
-//   // Adding orbit controls to camera (expected by AMI image widgets).
-//   camera.controls = orbitControls;
-
-//   // Scene.
-//   scene = new THREE.Scene();
-
-//   // Lights.
-//   light = new THREE.PointLight(0xffffff, 1.5);
-//   light.position.set(-600, 600, 1000);
-//   scene.add(light);
-
-//   cube = new THREE.Mesh(
-//     new THREE.BoxGeometry(100, 100, 100),
-//     new THREE.MeshBasicMaterial({ color: 0xff0000 })
-//   );
-
-//   scene.add(cube);
-// }
-
-// // Draw Scene
-// function render() {
-//   stats.update();
-//   renderer.render(scene, camera);
-//   cube.rotation.x += 0.01;
-//   cube.rotation.y += 0.01;
-// }
-
-// function onWindowResize() {
-//   camera.aspect = window.innerWidth / window.innerHeight;
-//   camera.updateProjectionMatrix();
-//   renderer.setSize(window.innerWidth, window.innerHeight);
-//   render();
-// }
-
-// start scene
-// init();
-// render();
+guiInit.onChange(() => {
+  worldDestroy();
+  init(canvas,initVars, gui);
+});

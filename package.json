@@ -22,8 +22,12 @@
     "webpack-dev-server": "^5.0.4"
   },
   "dependencies": {
+    "@types/dat.gui": "^0.7.13",
+    "lil-gui": "^0.19.2",
     "lodash": "^4.17.21",
+    "reflect-metadata": "^0.2.2",
     "stats.js": "^0.17.0",
-    "three": "^0.167.0"
+    "three": "^0.167.0",
+    "tsyringe": "^4.8.0"
   }
 }
