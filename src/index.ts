@@ -4,10 +4,10 @@ import "reflect-metadata";
 import * as THREE from 'three';
 import * as Stats from "stats.js";
 import GUI from 'lil-gui';
-import { contain } from "three/src/extras/TextureUtils";
-import { container } from "./autoinject";
-import { createCamera } from "./camera";
-import { createScene } from "./scene";
+import { container } from "./utils/autoinject";
+import { createCamera } from "./world/camera";
+import { createScene } from "./world/scene";
+import { createPlanet } from "./entities/planet";
 
 
 function createRenderer(
@@ -71,22 +71,16 @@ function init(
   const scene = createScene();
 
 
-  const cube = new THREE.Mesh(
-    new THREE.BoxGeometry(100, 100, 100),
-    new THREE.MeshBasicMaterial({ color: 0xff0000 })
-  );
-  // const guiCube = gui.addFolder('Cube');
-  // guiCube.add(cube.position, 'x', -1000, 1000);
+  const planet1 = createPlanet(50,{name: "Planet1"});
 
-  scene.add(cube);
+  scene.add(planet1);
 
 
   const requestId = requestAnimationFrame(animate.bind(this, scene, camera, renderer, stats));
   return () => {
 
     window.cancelAnimationFrame(requestId);
-    cube.geometry.dispose();
-    cube.material.dispose();
+    planet1.destroy();
     scene.destroy();
     camera.destroy();
     renderer.dispose();

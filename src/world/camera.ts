@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { container, GUI } from './autoinject';
-import { addFunction } from './functionalUtils';
-import { Destroyable } from './types';
+import { container, GUI } from '../utils/autoinject';
+import { addFunction } from '../utils/functionalUtils';
+import { Destroyable } from '../types';
 
 export interface Camera extends THREE.OrthographicCamera, Destroyable { };
 
