@@ -7,18 +7,8 @@ import GUI from 'lil-gui';
 import { contain } from "three/src/extras/TextureUtils";
 import { container } from "./autoinject";
 import { createCamera } from "./camera";
+import { createScene } from "./scene";
 
-function createWorld() {
-  const scene = new THREE.Scene();
-  const light = new THREE.PointLight(0xffffff, 1.5);
-  light.position.set(-600, 600, 1000);
-  scene.add(light);
-
-  return {
-    scene,
-    light
-  }
-}
 
 function createRenderer(
   canvas: HTMLCanvasElement,
@@ -77,11 +67,8 @@ function init(
 
   const camera = createCamera(window.innerWidth, window.innerHeight, cameraNear, cameraFar);
   camera.position.copy(new THREE.Vector3(0, 0, 500));
-  // const guiCamera = gui.addFolder('Camera');
-  // guiCamera.add(camera.position, 'x', -1000, 1000);
-  // guiCamera.add(camera.position, 'y', -1000, 1000);
 
-  const { scene, light } = createWorld();
+  const scene = createScene();
 
 
   const cube = new THREE.Mesh(
@@ -92,24 +79,16 @@ function init(
   // guiCube.add(cube.position, 'x', -1000, 1000);
 
   scene.add(cube);
-  scene.add(light);
 
 
   const requestId = requestAnimationFrame(animate.bind(this, scene, camera, renderer, stats));
-  // console.log('init');
-  // window.addEventListener("resize", onWindowResize.bind(camera,), false);
   return () => {
 
     window.cancelAnimationFrame(requestId);
     cube.geometry.dispose();
     cube.material.dispose();
-    scene.remove(cube);
-    scene.remove(light);
-    scene.remove(camera);
-    // guiCamera.domElement.remove();
-    // guiCamera.destroy();
-    // guiCube.domElement.remove();
-    // guiCube.destroy();
+    scene.destroy();
+    camera.destroy();
     renderer.dispose();
   }
 }
