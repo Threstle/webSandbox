@@ -45,7 +45,7 @@ export function createPlanet(
     })
 
     const planetWithDestroy = addFunction(planet, 'destroy', () => {
-        gui.destroy();
+        guiPlanet.destroy();
         planet.geometry.dispose();
         planet.material.dispose();
     });
