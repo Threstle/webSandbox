@@ -3,6 +3,10 @@ import { container, GUI } from '../utils/autoinject';
 import { addFunction } from '../utils/functionalUtils';
 import { Destroyable } from './../types';
 
+import planetVertexShader from '../shaders/planet/planet.vs';
+import planetFragmentShader from '../shaders/planet/planet.fs';
+
+
 export interface Planet extends THREE.Mesh, Destroyable { };
 
 export interface PlanetParams {
@@ -28,9 +32,16 @@ export function createPlanet(
     const sanitizedParams = { ...defaultParams, ...params };
     const { name, widthSegment, heightSegment, color } = sanitizedParams;
 
+    // Create the material
+    const material = new THREE.ShaderMaterial({
+        vertexShader: planetVertexShader,
+        fragmentShader: planetFragmentShader
+    });
+
     const planet = new THREE.Mesh(
         new THREE.SphereGeometry(radius, widthSegment, heightSegment),
-        new THREE.MeshBasicMaterial({ color })
+        // new THREE.MeshBasicMaterial({ color })
+        material
     );
 
     const guiParams = {

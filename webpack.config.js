@@ -3,10 +3,10 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 module.exports = {
   mode: "development",
-  entry: './src/index.ts',
-  devtool:'inline-source-map',
+  entry: "./src/index.ts",
+  devtool: "inline-source-map",
   devServer: {
-    static: './dist',
+    static: "./dist",
   },
   plugins: [
     new HtmlWebpackPlugin({
@@ -22,7 +22,7 @@ module.exports = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: 'ts-loader',
+        use: "ts-loader",
         exclude: /node_modules/,
       },
       {
@@ -32,10 +32,14 @@ module.exports = {
       {
         test: /\.(png|svg|jpg|jpeg|gif)$/i,
         type: "asset/resource",
-      },  
+      },
+      {
+        test: /\.(glsl|vs|fs)$/,
+        use: "ts-shader-loader",
+      },
     ],
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
+    extensions: [".tsx", ".ts", ".js"],
   },
 };
