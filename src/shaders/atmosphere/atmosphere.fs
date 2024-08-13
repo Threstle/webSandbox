@@ -12,8 +12,10 @@ float noise(vec3 p) {
     return mix(mix(mix(dot(hash(i + vec3(0.0, 0.0, 0.0)), f - vec3(0.0, 0.0, 0.0)), dot(hash(i + vec3(1.0, 0.0, 0.0)), f - vec3(1.0, 0.0, 0.0)), u.x), mix(dot(hash(i + vec3(0.0, 1.0, 0.0)), f - vec3(0.0, 1.0, 0.0)), dot(hash(i + vec3(1.0, 1.0, 0.0)), f - vec3(1.0, 1.0, 0.0)), u.x), u.y), mix(mix(dot(hash(i + vec3(0.0, 0.0, 1.0)), f - vec3(0.0, 0.0, 1.0)), dot(hash(i + vec3(1.0, 0.0, 1.0)), f - vec3(1.0, 0.0, 1.0)), u.x), mix(dot(hash(i + vec3(0.0, 1.0, 1.0)), f - vec3(0.0, 1.0, 1.0)), dot(hash(i + vec3(1.0, 1.0, 1.0)), f - vec3(1.0, 1.0, 1.0)), u.x), u.y), u.z);
 }
 
+uniform float uSpeed;
+uniform float uTime;
+uniform float uThickness;
 uniform float uNoiseScale;
-uniform float uContinentsScale;
 varying vec2 vUv;
 
 void main() {
@@ -28,11 +30,11 @@ void main() {
     unit.z = cos(phi) * sin(theta);
     unit = normalize(unit);
 
-   float n = noise(unit * uContinentsScale);
+   float n = noise(unit+uTime*uSpeed*0.0001)*uThickness;
    n += noise(unit * 10.0) * 0.25 * uNoiseScale;
-   n += noise(unit * 20.0) * 0.125 * uNoiseScale;
-   n += noise(unit * 40.0) * 0.0625 * uNoiseScale;
-   vec3 color = mix(vec3(0.05,0.3,0.5),vec3(0.9,0.4,0.1),smoothstep(-0.1, 0.0, n));
+//    n += noise(unit * 20.0) * 0.125 * uNoiseScale;
+//    n += noise(unit * 40.0) * 0.0625 * uNoiseScale;
+//    vec3 color = mix(vec3(0.05,0.3,0.5),vec3(0.9,0.4,0.1),smoothstep(-0.1, 0.0, n));
 
-    gl_FragColor = vec4(color, 1.0);
+    gl_FragColor = vec4(unit, 1.0-n);
 }

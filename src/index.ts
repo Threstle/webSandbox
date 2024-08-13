@@ -7,7 +7,7 @@ import GUI from 'lil-gui';
 import { container } from "./utils/autoinject";
 import { Camera, createCamera } from "./world/camera";
 import { createScene } from "./world/scene";
-import { createPlanet } from "./entities/planet";
+import { createPlanet, Planet } from "./entities/planet";
 
 
 function createRenderer(
@@ -39,10 +39,15 @@ function animate(
   scene: THREE.Scene,
   camera: THREE.Camera,
   renderer: THREE.WebGLRenderer,
-  stats: Stats
+  stats: Stats,
+  planet:Planet,
+  startTime:number
 ) {
+  const time = new Date().getTime() - startTime;
+  planet.update(startTime);
+  // console.log(time);
   render(scene, camera, renderer, stats)
-  requestAnimationFrame(animate.bind(this, scene, camera, renderer, stats));
+  requestAnimationFrame(animate.bind(this, scene, camera, renderer, stats,planet));
 }
 
 
@@ -55,6 +60,9 @@ function init(
   },
   gui: GUI,
 ) {
+
+  const startTime = new Date().getTime();
+  console.log(startTime);
   const { cameraNear, cameraFar, clearColor } = initVars;
 
   document.body.appendChild(canvas);
@@ -71,7 +79,7 @@ function init(
   const scene = createScene();
 
 
-  const planet1 = createPlanet(50,{name: "Planet1",color:0x00FF00*Math.random()});
+  const planet1 = createPlanet(200,{name: "Planet1",color:0x00FF00*Math.random()});
   const planet2 = createPlanet(400,{name: "Planet2",color:0x00FF00*Math.random()});
   planet2.position.set(700,0,0);
   
@@ -80,7 +88,7 @@ function init(
 
   window.addEventListener('resize', onWindowResize.bind(this, camera, renderer, () => render(scene, camera, renderer, stats)), false);  
 
-  const requestId = requestAnimationFrame(animate.bind(this, scene, camera, renderer, stats));
+  const requestId = requestAnimationFrame(animate.bind(this, scene, camera, renderer, stats,planet1,startTime));
   return () => {
     //FIXME: cleaning is not working properly atm
     window.cancelAnimationFrame(requestId);
