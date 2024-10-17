@@ -5,6 +5,7 @@ import { Destroyable, Updatable } from './../types';
 
 import standardVertexShader from '../shaders/standard/standard.vs';
 import planetFragmentShader from '../shaders/planet/planet.fs';
+import planetVertexShader from '../shaders/planet/planet.vs';
 import atmosphereFragmentShader from '../shaders/atmosphere/atmosphere.fs';
 
 export interface Planet extends THREE.Mesh, Destroyable, Updatable {
@@ -19,21 +20,27 @@ interface AtmosphereParams {
 
 export interface PlanetParams {
     name?: string;
-    color?: number;
+    color1?: number;
+    color2?: number;
     widthSegment?: number;
     heightSegment?: number;
     continentsScale?: number;
     noiseScale?: number;
+    mountainsSize?: number;
+    rotationSpeed?: number;
     atmosphereParams?:AtmosphereParams
 }
 
 const defaultParams: PlanetParams = {
     name: "Anonymous Planet",
-    color: 0xFF00F0,
-    widthSegment: 32,
-    heightSegment: 32,
+    color1: 0xFF00F0*Math.random(),
+    color2: 0xFF00F0*Math.random(),
+    widthSegment: 128,
+    heightSegment: 128,
     continentsScale: 1.49,
     noiseScale: 1.1,
+    mountainsSize: 10,
+    rotationSpeed: 0.005,
     atmosphereParams:{
         speed: 0.001,
         thickness: 20,
@@ -51,6 +58,7 @@ function createAtmosphere(radius: number,gui:GUI, params?:AtmosphereParams, ) {
         fragmentShader: atmosphereFragmentShader,
         uniforms:{
             uTime: { value: 0  },
+            uSeed: { value: Math.random()*1000.0 },
             uSpeed:{ value: speed },
             uThickness: { value: thickness },
             uNoiseScale: { value: noiseScale },
@@ -58,6 +66,7 @@ function createAtmosphere(radius: number,gui:GUI, params?:AtmosphereParams, ) {
     });
     material.transparent = true;
 
+    console.log(material.uniforms.uSeed);
     const atmosphere = new THREE.Mesh(
         new THREE.SphereGeometry(radius, 32, 32),
         material
@@ -86,16 +95,30 @@ export function createPlanet(
 ): Planet {
 
     const sanitizedParams = { ...defaultParams, ...params };
-    const { name, widthSegment, heightSegment, color, continentsScale, noiseScale, atmosphereParams } = sanitizedParams;
+    let { 
+        name, 
+        widthSegment, 
+        heightSegment, 
+        color1, 
+        color2, 
+        continentsScale, 
+        noiseScale, 
+        mountainsSize, 
+        rotationSpeed, 
+        atmosphereParams 
+    } = sanitizedParams;
 
     // Create the material
     const material = new THREE.ShaderMaterial({
-        vertexShader: standardVertexShader,
+        vertexShader: planetVertexShader,
         fragmentShader: planetFragmentShader,
         uniforms:{
-            uColor1: { value: new THREE.Color(color) },
+            uSeed: { value: Math.random()*1000.0 },
+            uColor1: { value: new THREE.Color(color1) },
+            uColor2: { value: new THREE.Color(color2) },
             uNoiseScale: { value: noiseScale  },
             uContinentsScale: { value: continentsScale },
+            uMountainsSize: { value: mountainsSize}
         }
     });
 
@@ -105,13 +128,16 @@ export function createPlanet(
     );
 
     const guiParams = {
-        scale:planet.scale.x
+        scale:planet.scale.x,
+        rotationSpeed
     }
 
     const guiPlanet = gui.addFolder(name || "Planet");
     guiPlanet.add(planet.position, 'x', -1000, 1000);
     guiPlanet.add(planet.position, 'y', -1000, 1000);
-    
+    guiPlanet.add(guiParams, 'rotationSpeed', -1, 1).onChange((value:number) => {rotationSpeed = value});
+
+
     const guiMaterial = guiPlanet.addFolder('Material');
     guiMaterial.add(material.uniforms.uNoiseScale, 'value', 0, 10).name('Noise Scale').onChange((value:number) => {
         material.uniforms.uNoiseScale.value = value;
@@ -119,16 +145,20 @@ export function createPlanet(
     guiMaterial.add(material.uniforms.uContinentsScale, 'value', 0, 10).name('Continents Scale').onChange((value:number) => {
         material.uniforms.uContinentsScale.value = value;
     });
+    guiMaterial.add(material.uniforms.uMountainsSize, 'value', 0, 120).name('Mountains Size').onChange((value:number) => {
+        material.uniforms.uMountainsSize.value = value;
+    });
 
     guiPlanet.add(guiParams, 'scale', 0.01, 10).onChange((value:number) => {
         planet.scale.set(value, value, value);
     })
+    guiPlanet.close();
 
     const atmosphere = createAtmosphere(radius + 10,guiPlanet, atmosphereParams);
-    planet.add(atmosphere);
+    // planet.add(atmosphere);
 
     const planetWithUpdate = addFunction(planet, 'update', (time:number) => {
-        planet.rotation.y += 0.01;
+        planet.rotation.y += rotationSpeed;
         atmosphere.rotation.y -= 0.005;
         atmosphere.material.uniforms.uTime.value = time;
     });
