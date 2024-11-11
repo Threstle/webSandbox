@@ -37,6 +37,8 @@ const AsciiShader = {
 
 
 		uniform float uRes;
+		uniform float uScreenRatio;
+		uniform float uLimit;
         uniform sampler2D uAsciiTexture;
 		uniform sampler2D tDiffuse;
 
@@ -48,8 +50,11 @@ const AsciiShader = {
             float res = uRes;
 			float cellSize = 0.0625;
 
-			vec2 gridPos = getCell(vUv, res);
-			vec2 posInCell = getPosInCell(vUv, res);
+			// vec2 ratioUv = vec2(uScreenRatio*vUv.x, vUv.y);
+			vec2 ratioUv = vec2(vUv.x, vUv.y);
+
+			vec2 gridPos = getCell(ratioUv, res);
+			vec2 posInCell = getPosInCell(ratioUv, res);
 
 			vec4 texel = texture2D( tDiffuse, gridPos );
 
@@ -66,14 +71,25 @@ const AsciiShader = {
 			if(asciiHeight>0.7)asciiCharPos.x = cellSize*1.0;
 
 
+			float distFromCenter = distance(vec2(gridPos.x*uScreenRatio,gridPos.y), vec2(0.5*uScreenRatio,0.5));
+			if(distFromCenter>uLimit)asciiCharPos.x = cellSize*0.0;
+
+
 			vec4 asciiTexel = 1.0 - texture2D(uAsciiTexture, vec2(asciiCharPos.x+posInCell.x*cellSize, asciiCharPos.y+posInCell.y*cellSize));
 
-			gl_FragColor = vec4(
+			if(distFromCenter>uLimit){
+				gl_FragColor = vec4(asciiTexel.r,asciiTexel.g,asciiTexel.b,1.0-asciiHeight);
+			}
+			else{
+				gl_FragColor = vec4(
 				asciiTexel.r*texel.r,
 				asciiTexel.g*texel.g,
 				asciiTexel.b*texel.b,
 				1.0-asciiHeight
 			);
+			}
+
+			
 			// gl_FragColor = texture2D( tDiffuse, gridPos );
 			// gl_FragColor = uOpacity * texel;
 

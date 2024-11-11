@@ -13,6 +13,8 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { AsciiShader } from "./shaders/postprocessing/Ascii";
 import { Updatable } from "./types";
+import { createRocket } from "./entities/rocket";
+import { createFloor } from "./entities/floor";
 const asciiTexture = require('../ascii.png');
 
 function createRenderer(
@@ -98,22 +100,35 @@ function init(
       ...AsciiShader,
       uniforms: {
         'tDiffuse': { value: null },
+        'uScreenRatio':{value:canvas.width/canvas.height},
         'uOpacity': { value: 1},
         'uRes': {value:80},
+        'uLimit': {value:0.3},
         'uAsciiTexture': { value: data }    
       },
     });
+    // asciiShader.enabled = false;
 
     const asciiShaderGui = gui.addFolder('AsciiShader');
     asciiShaderGui.add(asciiShader.uniforms.uRes, 'value', 20, 300).name('Resolution').onChange((value:number) => {
       asciiShader.material.uniforms.uRes.value = value;
-  });
+    });
+    asciiShaderGui.add(asciiShader.uniforms.uLimit, 'value', 0, 1).name('Limit').onChange((value:number) => {
+      asciiShader.material.uniforms.uLimit.value = value;
+    });
+    asciiShaderGui.add(asciiShader, 'enabled').name('Enabled').onChange((value:boolean) => {
+      asciiShader.enabled = value;
+    });
 
     composer.addPass(asciiShader);
 
   });
 
-  const sceneObjects = [];
+  const sceneObjects:(THREE.Mesh & Updatable)[] = [];
+  const addToScene = (obj: THREE.Mesh & Updatable) => {
+    sceneObjects.push(obj);
+    scene.add(obj);
+  };
 
   const planet1 = createPlanet(500*Math.random(), { 
     name: "Planet1",
@@ -128,12 +143,19 @@ function init(
   planet1.position.set(-272, 134, 0);
   planet2.position.set(0, -150, 0);
 
+  const rocket = createRocket();
+  rocket.position.set(0, 10, 0);
+  
+  const floor = createFloor();
+  // scene.add(floor);
+
+  addToScene(floor);
   
 
-  scene.add(planet1);
-  scene.add(planet2);
+  // addToScene(rocket);
+  // addToScene(planet1);
+  // addToScene(planet2);
 
-  sceneObjects.push(planet1,planet2);
 
   window.addEventListener('resize', onWindowResize.bind(this, camera, composer, () => render(scene, camera, composer, stats)), false);
 
