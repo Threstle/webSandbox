@@ -43,7 +43,7 @@ export function createRocket(
     //     }
     // });
 
-    const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
+    const material = new THREE.MeshBasicMaterial({color: 0xFF0000});
     const rocket = new THREE.Mesh(
         new THREE.BoxGeometry(10, 30, 1),
         material
@@ -91,6 +91,19 @@ export function createRocket(
     //     planet.geometry.dispose();
     //     planet.material.dispose();
     // });
+
+    document.addEventListener('keydown', (e) => {
+      console.log(e);
+      if(e.code === 'Space'){
+        acceleration+=0.1;
+      }
+      if(e.code === 'LeftArrow'){
+        rocket.rotation.z += 0.01;  
+      }
+      if(e.code === 'RightArrow'){
+        rocket.rotation.z -= 0.01;  
+      }
+    });
 
     const rocketWithUpdate = addFunction(rocket, 'update', (time:number) => {
         rocket.position.y += acceleration;

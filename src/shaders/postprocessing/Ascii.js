@@ -39,6 +39,8 @@ const AsciiShader = {
 		uniform float uRes;
 		uniform float uScreenRatio;
 		uniform float uLimit;
+		uniform float uStep;
+		uniform float uOndulation;
         uniform sampler2D uAsciiTexture;
 		uniform sampler2D tDiffuse;
 
@@ -47,7 +49,7 @@ const AsciiShader = {
 		void main() {
 
 
-            float res = uRes;
+            float res = uRes + uOndulation*100.0;
 			float cellSize = 0.0625;
 
 			// vec2 ratioUv = vec2(uScreenRatio*vUv.x, vUv.y);
@@ -63,29 +65,29 @@ const AsciiShader = {
 			
 			float asciiHeight = round(texelAvg*100.0)/100.0;
 
+			float steppedAsciiHeight = floor(asciiHeight*uStep)/uStep;
 
 			vec2 asciiCharPos = vec2(cellSize*0.0,1.0 - cellSize*4.0);
-			if(asciiHeight>0.4)asciiCharPos.x = cellSize*4.0;
-			if(asciiHeight>0.5)asciiCharPos.x = cellSize*3.0;
-			if(asciiHeight>0.6)asciiCharPos.x = cellSize*2.0;
-			if(asciiHeight>0.7)asciiCharPos.x = cellSize*1.0;
+			
+			asciiCharPos.x = cellSize*round(steppedAsciiHeight*10.0);
 
+			float limitWithOndulation = uLimit + uOndulation;
 
 			float distFromCenter = distance(vec2(gridPos.x*uScreenRatio,gridPos.y), vec2(0.5*uScreenRatio,0.5));
-			if(distFromCenter>uLimit)asciiCharPos.x = cellSize*0.0;
+			if(distFromCenter>limitWithOndulation)asciiCharPos.x = cellSize*0.0;
 
 
 			vec4 asciiTexel = 1.0 - texture2D(uAsciiTexture, vec2(asciiCharPos.x+posInCell.x*cellSize, asciiCharPos.y+posInCell.y*cellSize));
 
-			if(distFromCenter>uLimit){
-				gl_FragColor = vec4(asciiTexel.r,asciiTexel.g,asciiTexel.b,1.0-asciiHeight);
+			if(distFromCenter>limitWithOndulation){
+				gl_FragColor = vec4(asciiTexel.r,asciiTexel.g,asciiTexel.b,1.0 - distFromCenter*2.0);
 			}
 			else{
 				gl_FragColor = vec4(
 				asciiTexel.r*texel.r,
 				asciiTexel.g*texel.g,
 				asciiTexel.b*texel.b,
-				1.0-asciiHeight
+				1.0-steppedAsciiHeight
 			);
 			}
 

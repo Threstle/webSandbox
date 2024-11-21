@@ -13,8 +13,9 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { AsciiShader } from "./shaders/postprocessing/Ascii";
 import { Updatable } from "./types";
-import { createRocket } from "./entities/rocket";
+import { createRocket, Rocket } from "./entities/rocket";
 import { createFloor } from "./entities/floor";
+import { createAsciiFilter } from "./effects/asciiFilter";
 const asciiTexture = require('../ascii.png');
 
 function createRenderer(
@@ -37,7 +38,6 @@ function createRenderer(
 function render(scene: THREE.Scene, camera: THREE.Camera, composer: EffectComposer, stats: Stats) {
   stats.update();
   composer.render();
-  // renderer.render(scene, camera);
 }
 
 function onWindowResize(camera: Camera, composer: EffectComposer, render: () => void) {
@@ -56,14 +56,17 @@ function animate(
   startTime: number
 ) {
   const time = new Date().getTime() - startTime;
-
   sceneObjects.forEach((obj) => obj.update(time));
   render(scene, camera, composer, stats)
-  requestAnimationFrame(animate.bind(this, scene, camera, composer, stats, sceneObjects));
+  
+  const rocket = sceneObjects[2] as Rocket;
+  camera.position.lerp(new THREE.Vector3(rocket.position.x,rocket.position.y,camera.position.z), 0.1);
+  
+  requestAnimationFrame(animate.bind(this, scene, camera, composer, stats, sceneObjects,startTime));
 }
 
 
-function init(
+async function init(
   canvas: HTMLCanvasElement,
   initVars: {
     cameraNear: number,
@@ -71,10 +74,9 @@ function init(
     clearColor: number,
   },
   gui: GUI,
-) {
+): Promise<() => void> {
 
   const startTime = new Date().getTime();
-  console.log(startTime);
   const { cameraNear, cameraFar, clearColor } = initVars;
 
   document.body.appendChild(canvas);
@@ -93,73 +95,50 @@ function init(
 
   const renderPass = new RenderPass(scene, camera);
 
-  const texture = new THREE.TextureLoader().load(asciiTexture, (data) => {
-    console.log('loaded', data);
-    composer.addPass(renderPass);
-    const asciiShader = new ShaderPass({
-      ...AsciiShader,
-      uniforms: {
-        'tDiffuse': { value: null },
-        'uScreenRatio':{value:canvas.width/canvas.height},
-        'uOpacity': { value: 1},
-        'uRes': {value:80},
-        'uLimit': {value:0.3},
-        'uAsciiTexture': { value: data }    
-      },
-    });
-    // asciiShader.enabled = false;
+  const asciiFilter = await createAsciiFilter(asciiTexture,{ratio:canvas.width/canvas.height});
+  composer.addPass(renderPass);
+  composer.addPass(asciiFilter);
 
-    const asciiShaderGui = gui.addFolder('AsciiShader');
-    asciiShaderGui.add(asciiShader.uniforms.uRes, 'value', 20, 300).name('Resolution').onChange((value:number) => {
-      asciiShader.material.uniforms.uRes.value = value;
-    });
-    asciiShaderGui.add(asciiShader.uniforms.uLimit, 'value', 0, 1).name('Limit').onChange((value:number) => {
-      asciiShader.material.uniforms.uLimit.value = value;
-    });
-    asciiShaderGui.add(asciiShader, 'enabled').name('Enabled').onChange((value:boolean) => {
-      asciiShader.enabled = value;
-    });
 
-    composer.addPass(asciiShader);
 
-  });
-
-  const sceneObjects:(THREE.Mesh & Updatable)[] = [];
+  const objectsToUpdate: (Updatable)[] = [
+    asciiFilter
+  ];
   const addToScene = (obj: THREE.Mesh & Updatable) => {
-    sceneObjects.push(obj);
+    objectsToUpdate.push(obj);
     scene.add(obj);
   };
 
-  const planet1 = createPlanet(500*Math.random(), { 
+
+  const planet1 = createPlanet(500 * Math.random(), {
     name: "Planet1",
-    color1: 0xFFFFFF*Math.random(),
-    color2: 0xFFFFFF*Math.random(), 
-   });
-  const planet2 = createPlanet(500*Math.random(), { 
+    color1: 0xFFFFFF * Math.random(),
+    color2: 0xFFFFFF * Math.random(),
+  });
+  const planet2 = createPlanet(500 * Math.random(), {
     name: "Planet2",
-    color1: 0xFFFFFF*Math.random(),
-    color2: 0xFFFFFF*Math.random(),  
+    color1: 0xFFFFFF * Math.random(),
+    color2: 0xFFFFFF * Math.random(),
   });
   planet1.position.set(-272, 134, 0);
   planet2.position.set(0, -150, 0);
 
   const rocket = createRocket();
   rocket.position.set(0, 10, 0);
-  
+
   const floor = createFloor();
   // scene.add(floor);
 
   addToScene(floor);
-  
 
-  // addToScene(rocket);
+  addToScene(rocket);
   // addToScene(planet1);
   // addToScene(planet2);
 
 
   window.addEventListener('resize', onWindowResize.bind(this, camera, composer, () => render(scene, camera, composer, stats)), false);
 
-  const requestId = requestAnimationFrame(animate.bind(this, scene, camera, composer, stats, sceneObjects, startTime));
+  const requestId = requestAnimationFrame(animate.bind(this, scene, camera, composer, stats, objectsToUpdate, startTime));
   return () => {
     //FIXME: cleaning is not working properly atm
     window.cancelAnimationFrame(requestId);
@@ -188,6 +167,8 @@ const canvas = document.createElement("canvas");
 const worldDestroy = init(canvas, initVars, gui);
 
 guiInit.onChange(() => {
-  worldDestroy();
+  worldDestroy.then((value) => {
+    value();
+  });
   init(canvas, initVars, gui);
 });

@@ -23,8 +23,8 @@ varying vec2 vUv;
 void main() {
 
     float colorMod = noise(vec3(vUv.x, vUv.y,12.0)*uNoiseFreq)*uNoiseAmp;
-    float steppedColorMod = floor(colorMod*uStep)/uStep;
-    vec3 color = mix(uColor1, uColor2, steppedColorMod);
+    // float steppedColorMod = floor(colorMod*uStep)/uStep;
+    vec3 color = mix(uColor1, uColor2, colorMod);
     // vec3 steppedColor = floor(color*100.0)/100.0;
 
     // vec3 color = vec3(vNoise);
