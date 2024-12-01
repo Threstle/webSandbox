@@ -66,7 +66,6 @@ function createAtmosphere(radius: number,gui:GUI, params?:AtmosphereParams, ) {
     });
     material.transparent = true;
 
-    console.log(material.uniforms.uSeed);
     const atmosphere = new THREE.Mesh(
         new THREE.SphereGeometry(radius, 32, 32),
         material

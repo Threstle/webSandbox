@@ -1,12 +1,11 @@
 import * as THREE from 'three';
 import { container, GUI } from '../utils/autoinject';
 import { addFunction } from '../utils/functionalUtils';
-import { Destroyable, Updatable } from './../types';
+import { Updatable } from './../types';
 
-import floorVertexShader from '../shaders/floor/floor.vs';
-import floorFragmentShader from '../shaders/floor/floor.fs';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { AsciiShader } from '../shaders/postprocessing/Ascii';
+import { getTextureAverageHeight } from '../utils/imageUtils';
 
 export interface AsciiFilter extends ShaderPass, Updatable { };
 
@@ -43,6 +42,10 @@ export async function createAsciiFilter(
 
     const loadedTexture = await textureLoader.loadAsync(asciiTexture);
 
+    const heightRatio = 127.5/getTextureAverageHeight(loadedTexture);
+
+    console.log(heightRatio);
+
     const asciiFilter = new ShaderPass({
         ...AsciiShader,
         uniforms: {
@@ -53,7 +56,9 @@ export async function createAsciiFilter(
             'uOndulation': { value: 0 },
             'uLimit': { value: limit },
             'uStep': { value: step },
-            'uAsciiTexture': { value: loadedTexture }
+            'uAsciiTexture': { value: loadedTexture },
+            'uRadius': { value: 0.3 },
+            'uHeightRatio': { value: heightRatio },
         },
     });
 
@@ -75,13 +80,17 @@ export async function createAsciiFilter(
         asciiFilter.enabled = value;
     });
 
-    const asciiWithUpdate = addFunction(asciiFilter, 'update', (time: number) => {
+    const asciiWithUpdate = addFunction(asciiFilter, 'update', (time: number,radius:number) => {
+        
         const ondulationPulse = Math.sin(time / 1000) * ondulation * 0.1;
         const stepPulse = Math.sin(time / 1000) + step;
         const resolutionPulse = Math.sin(time / 1000) + resolution;
-        asciiFilter.material.uniforms.uOndulation.value = ondulationPulse;
-        asciiFilter.material.uniforms.uStep.value = stepPulse;
-        asciiFilter.material.uniforms.uRes.value = resolutionPulse;
+        // asciiFilter.material.uniforms.uOndulation.value = ondulationPulse;
+        // asciiFilter.material.uniforms.uStep.value = stepPulse;
+        // asciiFilter.material.uniforms.uRes.value = resolutionPulse;
+        if(radius){
+            asciiFilter.material.uniforms.uRadius.value = radius;
+        }
     });
 
     return asciiWithUpdate;

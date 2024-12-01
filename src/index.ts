@@ -5,18 +5,21 @@ import * as THREE from 'three';
 import * as Stats from "stats.js";
 import GUI from 'lil-gui';
 import { container } from "./utils/autoinject";
-import { Camera, createCamera } from "./world/camera";
+import { createCamera } from "./world/camera";
 import { createScene } from "./world/scene";
-import { createPlanet, Planet } from "./entities/planet";
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { AsciiShader } from "./shaders/postprocessing/Ascii";
 import { Updatable } from "./types";
 import { createRocket, Rocket } from "./entities/rocket";
 import { createFloor } from "./entities/floor";
 import { createAsciiFilter } from "./effects/asciiFilter";
+import { createReliefMap } from "./entities/reliefMap";
+import { getNormalizedDistance, getNormalizedPosition, to2D } from "./utils/3dUtils";
+import { MAP, UI } from "./conf";
 const asciiTexture = require('../ascii.png');
+const oceanFloorTexture = require('../src/assets/map1.png');
+
+import './style.css';
 
 function createRenderer(
   canvas: HTMLCanvasElement,
@@ -35,53 +38,31 @@ function createRenderer(
   return effectComposer;
 }
 
-function render(scene: THREE.Scene, camera: THREE.Camera, composer: EffectComposer, stats: Stats) {
-  stats.update();
-  composer.render();
-}
-
-function onWindowResize(camera: Camera, composer: EffectComposer, render: () => void) {
-  console.log("resize");
-  camera.resize(window.innerWidth, window.innerHeight);
-  composer.setSize(window.innerWidth, window.innerHeight);
-  render();
-}
-
-function animate(
-  scene: THREE.Scene,
-  camera: THREE.Camera,
-  composer: EffectComposer,
-  stats: Stats,
-  sceneObjects: Updatable[],
-  startTime: number
-) {
-  const time = new Date().getTime() - startTime;
-  sceneObjects.forEach((obj) => obj.update(time));
-  render(scene, camera, composer, stats)
-  
-  const rocket = sceneObjects[2] as Rocket;
-  camera.position.lerp(new THREE.Vector3(rocket.position.x,rocket.position.y,camera.position.z), 0.1);
-  
-  requestAnimationFrame(animate.bind(this, scene, camera, composer, stats, sceneObjects,startTime));
-}
-
 
 async function init(
-  canvas: HTMLCanvasElement,
+  mainCanvas: HTMLCanvasElement,
+  sideCanvas: HTMLCanvasElement,
   initVars: {
     cameraNear: number,
     cameraFar: number,
     clearColor: number,
   },
   gui: GUI,
+  textureLoader = container.resolve<THREE.TextureLoader>("TextureLoader"),
 ): Promise<() => void> {
 
+  
   const startTime = new Date().getTime();
-  const { cameraNear, cameraFar, clearColor } = initVars;
-
-  document.body.appendChild(canvas);
-  const composer = createRenderer(canvas, clearColor);
-
+  const { cameraNear, cameraFar, clearColor } = initVars;  
+  
+  const oceanFloorHeightmap = await textureLoader.loadAsync(oceanFloorTexture);
+  
+  const composer = createRenderer(mainCanvas, clearColor);
+  const sideComposer = createRenderer(sideCanvas, 0xFFFFFF, {
+    width: 300,
+    height: 300,
+  });
+  
 
   var stats = new Stats();
   stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
@@ -89,17 +70,22 @@ async function init(
 
 
   const camera = createCamera(window.innerWidth, window.innerHeight, cameraNear, cameraFar);
+  // const sideCamera = createCamera(500, 500, cameraNear, cameraFar);
+  const sideCamera = new THREE.PerspectiveCamera();
   camera.position.copy(new THREE.Vector3(0, 0, 500));
+  sideCamera.position.copy(new THREE.Vector3(UI.reliefMapPos.x, UI.reliefMapPos.y, 1000));
 
   const scene = createScene();
 
-  const renderPass = new RenderPass(scene, camera);
 
-  const asciiFilter = await createAsciiFilter(asciiTexture,{ratio:canvas.width/canvas.height});
+  const renderPass = new RenderPass(scene, camera);
+  const sideRenderPass = new RenderPass(scene, sideCamera);
+
+  const asciiFilter = await createAsciiFilter(asciiTexture, { ratio: mainCanvas.width / mainCanvas.height });
   composer.addPass(renderPass);
   composer.addPass(asciiFilter);
 
-
+  sideComposer.addPass(sideRenderPass);
 
   const objectsToUpdate: (Updatable)[] = [
     asciiFilter
@@ -109,40 +95,55 @@ async function init(
     scene.add(obj);
   };
 
-
-  const planet1 = createPlanet(500 * Math.random(), {
-    name: "Planet1",
-    color1: 0xFFFFFF * Math.random(),
-    color2: 0xFFFFFF * Math.random(),
-  });
-  const planet2 = createPlanet(500 * Math.random(), {
-    name: "Planet2",
-    color1: 0xFFFFFF * Math.random(),
-    color2: 0xFFFFFF * Math.random(),
-  });
-  planet1.position.set(-272, 134, 0);
-  planet2.position.set(0, -150, 0);
-
   const rocket = createRocket();
-  rocket.position.set(0, 10, 0);
+  rocket.position.set(MAP.size/2, MAP.size/2, 0);
+  camera.position.set(rocket.position.x, rocket.position.y, camera.position.z);
+  addToScene(rocket);
 
-  const floor = createFloor();
-  // scene.add(floor);
-
+  const floor = createFloor(oceanFloorHeightmap,{
+    size:MAP.size
+  });
+  floor.position.set(MAP.size/2, MAP.size/2, 0);
   addToScene(floor);
 
-  addToScene(rocket);
-  // addToScene(planet1);
-  // addToScene(planet2);
+  const reliefMap = await createReliefMap(oceanFloorHeightmap);
+  reliefMap.position.set(UI.reliefMapPos.x, UI.reliefMapPos.y, 0);
+  reliefMap.rotation.x = -Math.PI/4;
+  addToScene(reliefMap); 
 
 
-  window.addEventListener('resize', onWindowResize.bind(this, camera, composer, () => render(scene, camera, composer, stats)), false);
+  
+  //window.addEventListener('resize', onWindowResize.bind(this, camera, composer, () => render(scene, camera, composer, stats)), false);
+  
+  // const requestId = requestAnimationFrame(animate.bind(this, scene, camera, composer, sideCamera, sideComposer, stats, objectsToUpdate, startTime));
+  
+  let requestId = 0;
+  
+  function animate(
+    
+  ) {
 
-  const requestId = requestAnimationFrame(animate.bind(this, scene, camera, composer, stats, objectsToUpdate, startTime));
+    const time = new Date().getTime() - startTime;
+    const rocketPos = getNormalizedPosition(rocket.position);
+    const radarRadius = getNormalizedDistance(UI.radius);
+    objectsToUpdate.forEach((obj) => obj.update(time));
+    composer.render();
+    sideComposer.render();
+    stats.update();
+    reliefMap.update(time,rocketPos,radarRadius);
+    asciiFilter.update(time, UI.radius /  Math.min(window.innerHeight,window.innerWidth));
+
+    camera.position.lerp(new THREE.Vector3(rocket.position.x, rocket.position.y, camera.position.z), 0.1);
+
+    requestId = requestAnimationFrame(animate.bind(this, scene, camera, composer, sideCamera, sideComposer, stats, objectsToUpdate, startTime));
+    
+  }
+  requestId = requestAnimationFrame(animate);
+  
+
   return () => {
     //FIXME: cleaning is not working properly atm
     window.cancelAnimationFrame(requestId);
-    planet1.destroy();
     scene.destroy();
     camera.destroy();
     composer.dispose();
@@ -162,13 +163,19 @@ guiInit.add(initVars, 'cameraFar', 0, 1000);
 guiInit.addColor(initVars, 'clearColor');
 guiInit.close();
 
-const canvas = document.createElement("canvas");
+const mainCanvas = document.createElement("canvas");
+const sideCanvas = document.createElement("canvas");
+document.body.appendChild(mainCanvas);
+document.body.appendChild(sideCanvas);
+sideCanvas.style.position = "absolute";
+sideCanvas.style.top = "100px";
+sideCanvas.style.left = "100px";
 
-const worldDestroy = init(canvas, initVars, gui);
+const worldDestroy = init(mainCanvas, sideCanvas, initVars, gui);
 
 guiInit.onChange(() => {
   worldDestroy.then((value) => {
     value();
   });
-  init(canvas, initVars, gui);
+  init(mainCanvas, sideCanvas, initVars, gui);
 });

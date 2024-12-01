@@ -3,5 +3,5 @@ export interface Destroyable{
 }
 
 export interface Updatable{
-    update: (time: number) => void;
+    update: (time: number, ...arg:any) => void;
 }

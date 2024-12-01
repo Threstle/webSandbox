@@ -17,16 +17,19 @@ uniform float uNoiseFreq;
 uniform float uStep;
 uniform vec3 uColor1;
 uniform vec3 uColor2;
+uniform sampler2D uHeightmap;
+uniform vec2 uHeightRange;
 
 varying vec2 vUv;
 
 void main() {
 
-    float colorMod = noise(vec3(vUv.x, vUv.y,12.0)*uNoiseFreq)*uNoiseAmp;
+    //float colorMod = noise(vec3(vUv.x, vUv.y,12.0)*uNoiseFreq)*uNoiseAmp;
     // float steppedColorMod = floor(colorMod*uStep)/uStep;
-    vec3 color = mix(uColor1, uColor2, colorMod);
-    // vec3 steppedColor = floor(color*100.0)/100.0;
+    
 
-    // vec3 color = vec3(vNoise);
+    float height = texture2D(uHeightmap, vUv).r;
+    float rangedHeight = uHeightRange.x + (uHeightRange.y - uHeightRange.x) * height;
+    vec3 color = mix(uColor1, uColor2, rangedHeight);
     gl_FragColor = vec4(color, 1.0);
 }
