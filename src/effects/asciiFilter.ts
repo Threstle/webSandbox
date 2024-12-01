@@ -4,8 +4,10 @@ import { addFunction } from '../utils/functionalUtils';
 import { Updatable } from './../types';
 
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
-import { AsciiShader } from '../shaders/postprocessing/Ascii';
 import { getTextureAverageHeight } from '../utils/imageUtils';
+
+import vertexShader from '../shaders/standard/standard.vs';
+import fragmentShader from '../shaders/postprocessing/ascii.fs'
 
 export interface AsciiFilter extends ShaderPass, Updatable { };
 
@@ -36,7 +38,7 @@ export async function createAsciiFilter(
 
     const sanitizedParams = { ...defaultParams, ...params };
     let {
-        ratio, resolution, limit, ondulation, step
+        ratio, resolution,
     } = sanitizedParams;
 
 
@@ -47,15 +49,13 @@ export async function createAsciiFilter(
     console.log(heightRatio);
 
     const asciiFilter = new ShaderPass({
-        ...AsciiShader,
+        vertexShader,
+        fragmentShader,
         uniforms: {
             'tDiffuse': { value: null },
             'uScreenRatio': { value: ratio },
             'uOpacity': { value: 1 },
             'uRes': { value: resolution },
-            'uOndulation': { value: 0 },
-            'uLimit': { value: limit },
-            'uStep': { value: step },
             'uAsciiTexture': { value: loadedTexture },
             'uRadius': { value: 0.3 },
             'uHeightRatio': { value: heightRatio },
@@ -66,28 +66,12 @@ export async function createAsciiFilter(
     asciiShaderGui.add(asciiFilter.uniforms.uRes, 'value', 20, 300).name('Resolution').onChange((value: number) => {
         asciiFilter.material.uniforms.uRes.value = value;
     });
-    asciiShaderGui.add(asciiFilter.uniforms.uStep, 'value', 0.1, 20).name('Step').onChange((value: number) => {
-        asciiFilter.material.uniforms.uStep.value = value;
-    });
-    asciiShaderGui.add(asciiFilter.uniforms.uLimit, 'value', 0, 1).name('Limit').onChange((value: number) => {
-        asciiFilter.material.uniforms.uLimit.value = value;
-    });
-    asciiShaderGui.add(asciiFilter.uniforms.uOndulation, 'value', -1, 1).name('Ondulation').onChange((value: number) => {
-        ondulation = value;
-    });
     
     asciiShaderGui.add(asciiFilter, 'enabled').name('Enabled').onChange((value: boolean) => {
         asciiFilter.enabled = value;
     });
 
-    const asciiWithUpdate = addFunction(asciiFilter, 'update', (time: number,radius:number) => {
-        
-        const ondulationPulse = Math.sin(time / 1000) * ondulation * 0.1;
-        const stepPulse = Math.sin(time / 1000) + step;
-        const resolutionPulse = Math.sin(time / 1000) + resolution;
-        // asciiFilter.material.uniforms.uOndulation.value = ondulationPulse;
-        // asciiFilter.material.uniforms.uStep.value = stepPulse;
-        // asciiFilter.material.uniforms.uRes.value = resolutionPulse;
+    const asciiWithUpdate = addFunction(asciiFilter, 'update', (time: number,radius:number) => {        
         if(radius){
             asciiFilter.material.uniforms.uRadius.value = radius;
         }
