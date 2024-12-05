@@ -4,10 +4,11 @@ import "reflect-metadata";
 import * as THREE from 'three';
 import * as Stats from "stats.js";
 import GUI from 'lil-gui';
+import * as CANNON from 'cannon';
 import { container } from "./utils/autoinject";
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { createRocket, Rocket } from "./entities/rocket";
+import { createRocket } from "./entities/rocket";
 import { createFloor } from "./entities/floor";
 import { createAsciiFilter } from "./effects/asciiFilter";
 import { createReliefMap } from "./entities/reliefMap";
@@ -57,6 +58,11 @@ async function init(
     height: UI.side.size,
   });
 
+  // Init physics
+  const physicsWorld = new CANNON.World();
+  physicsWorld.gravity.set(0, 0, 0);
+  
+
   const scene = new THREE.Scene();
 
   // Create the cameras
@@ -77,9 +83,18 @@ async function init(
   sideComposer.addPass(sideRenderPass);
 
   const rocket = createRocket();
-  rocket.position.set(MAP.size / 2, MAP.size / 2, 0);
-  mainCamera.position.set(rocket.position.x, rocket.position.y, UI.main.cameraDistance);
-  scene.add(rocket);
+  // const rockBodyMaterial = new CANNON.Material('rocketMaterial');
+  // const rocketBody = new CANNON.Body({ mass: 1 });
+  // rocketBody.applyImpulse(new CANNON.Vec3(10, 0, 10), new CANNON.Vec3(rocket.position.x+10, rocket.position.y, rocket.position.z));
+  // rocketBody.angularVelocity.set(0, 0, 1);
+  // rocketBody.velocity.set(-100, -100, 1);
+  console.log(rocket.body);
+  rocket.setPosition(MAP.size / 2, MAP.size / 2);
+  scene.add(rocket.mesh);
+  physicsWorld.addBody(rocket.body);
+  // rocket.position.set(MAP.size / 2, MAP.size / 2, 0);
+  // rocketBody.position.set(rocket.position.x, rocket.position.y, rocket.position.z);
+  mainCamera.position.set(rocket.mesh.position.x, rocket.mesh.position.y, UI.main.cameraDistance);
 
   const floor = createFloor(testMap, {
     size: MAP.size
@@ -94,14 +109,17 @@ async function init(
 
   let requestId = 0;
 
+  const clock = new THREE.Clock();
   function animate(
 
   ) {
-
-    const time = new Date().getTime() - startTime;
-    const rocketPos = getNormalizedPosition(rocket.position);
-    const radarRadius = getNormalizedDistance(UI.radius);
     
+    const time = new Date().getTime() - startTime;
+    
+    physicsWorld.step(clock.getDelta());
+    const rocketPos = getNormalizedPosition(rocket.mesh.position);
+    const radarRadius = getNormalizedDistance(UI.radius);
+  
     rocket.update(time);
     reliefMap.update(time, rocketPos, radarRadius);
     asciiFilter.update(time, UI.radius / Math.min(window.innerHeight, window.innerWidth));
@@ -110,7 +128,7 @@ async function init(
     sideComposer.render();
     stats.update();
 
-    mainCamera.position.lerp(new THREE.Vector3(rocket.position.x, rocket.position.y, mainCamera.position.z), 0.1);
+    mainCamera.position.lerp(new THREE.Vector3(rocket.mesh.position.x, rocket.mesh.position.y, mainCamera.position.z), 0.1);
 
     requestId = requestAnimationFrame(animate.bind(this));
 

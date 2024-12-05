@@ -22,3 +22,11 @@ export const UI = {
 export const CAMERA = {
 
 }
+
+export const ASCII ={
+    // resolution: 120,
+    resolution: 300,
+    // limit: 0.3,
+    // ondulation: 0.1,
+    // step:10
+}

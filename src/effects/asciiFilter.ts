@@ -8,24 +8,17 @@ import { getTextureAverageHeight } from '../utils/imageUtils';
 
 import vertexShader from '../shaders/standard/standard.vs';
 import fragmentShader from '../shaders/postprocessing/ascii.fs'
+import { ASCII } from '../conf';
 
 export interface AsciiFilter extends ShaderPass, Updatable { };
 
 
 export interface AsciiFilterParams {
     ratio?: number;
-    resolution?: number;
-    limit?: number;
-    ondulation?: number;
-    step?:number;
 }
 
 const defaultParams: AsciiFilterParams = {
     ratio: 1,
-    resolution: 120,
-    limit: 0.3,
-    ondulation: 0.1,
-    step:10
 }
 
 export async function createAsciiFilter(
@@ -38,15 +31,16 @@ export async function createAsciiFilter(
 
     const sanitizedParams = { ...defaultParams, ...params };
     let {
-        ratio, resolution,
+        ratio,
     } = sanitizedParams;
+
+    const {resolution} = ASCII;
 
 
     const loadedTexture = await textureLoader.loadAsync(asciiTexture);
 
     const heightRatio = 127.5/getTextureAverageHeight(loadedTexture);
 
-    console.log(heightRatio);
 
     const asciiFilter = new ShaderPass({
         vertexShader,
@@ -61,6 +55,7 @@ export async function createAsciiFilter(
             'uHeightRatio': { value: heightRatio },
         },
     });
+
 
     const asciiShaderGui = gui.addFolder('AsciiShader');
     asciiShaderGui.add(asciiFilter.uniforms.uRes, 'value', 20, 300).name('Resolution').onChange((value: number) => {

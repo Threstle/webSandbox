@@ -24,7 +24,9 @@
     "webpack-glsl-loader": "^1.0.1"
   },
   "dependencies": {
+    "@types/cannon": "^0.1.13",
     "@types/dat.gui": "^0.7.13",
+    "cannon": "^0.6.2",
     "lil-gui": "^0.19.2",
     "lodash": "^4.17.21",
     "reflect-metadata": "^0.2.2",
