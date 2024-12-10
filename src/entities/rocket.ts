@@ -2,12 +2,12 @@ import * as CANNON from 'cannon';
 import * as THREE from 'three';
 import { container, GUI } from '../utils/autoinject';
 import { addFunction } from '../utils/functionalUtils';
-import { Destroyable, Updatable } from './../types';
+import { Destroyable, Updatable, Vec2, Vec3 } from './../types';
 
 export interface Rocket extends Destroyable, Updatable {
-  mesh:THREE.Mesh;
-  setPosition(x:number,y:number):void;
-  body:CANNON.Body;
+  mesh: THREE.Mesh;
+  setPosition(x: number, y: number): void;
+  body: CANNON.Body;
 };
 
 
@@ -45,7 +45,7 @@ export function createRocket(
 
   const material = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
   const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(20, 60, 1),
+    new THREE.BoxGeometry(50, 100, 1),
     material
   );
 
@@ -95,38 +95,65 @@ export function createRocket(
   //     planet.material.dispose();
   // });
 
+  let velocity = 0;
+
+  const getForwardVector = (rotation: number) => {
+    return new THREE.Vector3(
+      Math.cos(rotation),
+      Math.sin(rotation),
+    )
+  }
+
+  const updateRigidbodyVelocity = ()=>{
+
+    const rotatedVector = getForwardVector(mesh.rotation.z);
+
+    body.velocity.set(
+      body.velocity.x + -rotatedVector.y * velocity,
+      body.velocity.y + rotatedVector.x * velocity,
+      body.velocity.z
+    )
+    
+    body.velocity.x -= 1 * (body.velocity.x>0?1:-1)
+    body.velocity.y -= 1 * (body.velocity.y>0?1:-1)
+
+
+  }
+
+  const addVelocity = (amount:number)=>{
+    velocity += amount;
+    if(velocity>10){velocity=10};
+  }
+
   document.addEventListener('keydown', (e) => {
-    // console.log(e.code);
     if (e.code === 'ArrowUp') {
-      // console.log(body.velocity)
-      const forward = new THREE.Vector3(0,1,0);
-      // mesh.getWorldDirection(forward);
-
-      const rot = mesh.rotation.z;
-
-      const rotatedVector = {
-        x: forward.x * Math.cos(rot) - forward.y * Math.sin(rot),
-        y: forward.x * Math.sin(rot) + forward.y * Math.cos(rot),
-      };
-
-      
-      body.velocity.x += rotatedVector.x;
-      body.velocity.y += rotatedVector.y;
-      console.log(forward);
-
-      // forward.applyQuaternion(mesh.quaternion);
-      // console.log(forward,mesh.quaternion)
-      // body.velocity.x += 10.1;
+      addVelocity(5);
     }
     if (e.code === 'ArrowLeft') {
-      body.angularVelocity.z += 0.1;
+      body.angularVelocity.z += 0.3;
     }
     if (e.code === 'ArrowRight') {
-      body.angularVelocity.z -= 0.1;
+      body.angularVelocity.z -= 0.3;
+    }
+    if (e.code === 'ArrowDown') {
+      if(velocity>0){
+        addVelocity(-5);
+      }
     }
   });
 
-  const updatePositionFromBody = ()=>{
+  const getRotatedVector = (forward: THREE.Vector3) => {
+    const rot = mesh.rotation.z;
+
+    const rotatedVector = {
+      x: forward.x * Math.cos(rot) - forward.y * Math.sin(rot),
+      y: forward.x * Math.sin(rot) + forward.y * Math.cos(rot),
+    };
+
+    return rotatedVector;
+  }
+
+  const updatePositionFromBody = () => {
     mesh.position.set(body.position.x, body.position.y, mesh.position.z);
     mesh.quaternion.set(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
   }
@@ -136,8 +163,28 @@ export function createRocket(
     body,
   }
 
+  let lastTimestamp = 0;
   const rocketWithUpdate = addFunction(base, 'update', (time: number) => {
+
+    if (time - lastTimestamp > 50) {
+      lastTimestamp = time;
+      console.log('top');
+
+      if (body.angularVelocity.z !== 0) {
+        body.angularVelocity.z -= 0.01 * (body.angularVelocity.z > 0 ? 1 : -1);
+      }
+      
+      velocity-=1;
+      
+      if(velocity<0)velocity=0;
+
+  
+      updateRigidbodyVelocity(); 
+     
+    }
+
     updatePositionFromBody();
+
     // console.log(body.angularVelocity.z);
   });
 
@@ -147,8 +194,8 @@ export function createRocket(
     mesh.material.dispose();
   });
 
-  const rocketWithSetPos = addFunction(rocketWithDestroy,'setPosition',(x:number,y:number)=>{
-    body.position.set(x,y,0);
+  const rocketWithSetPos = addFunction(rocketWithDestroy, 'setPosition', (x: number, y: number) => {
+    body.position.set(x, y, 0);
     updatePositionFromBody();
   });
 
