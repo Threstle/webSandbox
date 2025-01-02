@@ -7,9 +7,9 @@ varying vec2 vUv;
 varying float vElevation;
 
 
-
-
 void main() {
+
+
 
     float res = 1.0 / uRadius;
 
@@ -26,17 +26,7 @@ void main() {
 
     vec4 modelPosition = modelMatrix * vec4(position, 1.0);
     modelPosition.y += elevation*uHeightAmp;
-    // Elevation
-    // float elevation = sin(modelPosition.x * 10.0 * 1.0) *
-    //                   sin(modelPosition.z * 10.0 * 1.0) *
-    //                   1.0;
-
-    // // for(float i = 1.0; i <= uSmallIterations; i++)
-    // // {
-    // //     elevation -= abs(cnoise(vec3(modelPosition.xz * uSmallWavesFrequency * i, uTime * uSmallWavesSpeed)) * uSmallWavesElevation / i);
-    // // }
-    
-    // modelPosition.y += elevation;
+  
 
     vec4 viewPosition = viewMatrix * modelPosition;
     vec4 projectedPosition = projectionMatrix * viewPosition;

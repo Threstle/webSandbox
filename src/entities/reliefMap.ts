@@ -45,7 +45,7 @@ export async function createReliefMap(
         reliefMap.material.dispose();
     });
 
-    const reliefMapWithUpdate = addFunction(reliefMapWithDestroy, 'update', (time: number, normalizedPosition: THREE.Vector2,radius:number) => {
+    const reliefMapWithUpdate = addFunction(reliefMapWithDestroy, 'update', (time: number, normalizedPosition: THREE.Vector2,radius:number,rotation:number) => {
 
         if(normalizedPosition){
             material.uniforms.uPos.value = normalizedPosition;
@@ -53,6 +53,8 @@ export async function createReliefMap(
         if(radius){
             material.uniforms.uRadius.value = radius;
         }
+
+        reliefMap.rotation.z = rotation;
     });
 
 

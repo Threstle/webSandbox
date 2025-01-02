@@ -3,8 +3,8 @@
 import "reflect-metadata";
 import * as THREE from 'three';
 import * as Stats from "stats.js";
+import * as MATTER from 'matter-js';
 import GUI from 'lil-gui';
-import * as CANNON from 'cannon';
 import { container } from "./utils/autoinject";
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -13,7 +13,7 @@ import { createFloor } from "./entities/floor";
 import { createAsciiFilter } from "./effects/asciiFilter";
 import { createReliefMap } from "./entities/reliefMap";
 import { getNormalizedDistance, getNormalizedPosition, to2D } from "./utils/3dUtils";
-import {  MAP, UI } from "./conf";
+import { ASCII, MAP, UI } from "./conf";
 const asciiTexture = require('../ascii.png');
 const oceanFloorTexture = require('../src/assets/map1.png');
 
@@ -59,9 +59,40 @@ async function init(
   });
 
   // Init physics
-  const physicsWorld = new CANNON.World();
-  physicsWorld.gravity.set(0, 0, 0);
-  
+  const physicsEngine = MATTER.Engine.create({
+    gravity: {
+      x: 0,
+      y: 0,
+      scale: 0
+    }
+  });
+
+  // create renderer
+  const physicRenderer = MATTER.Render.create({
+    element: document.body,
+    engine: physicsEngine,
+    options: {
+      width: 300,
+      height: 300,
+      showVelocity: true,
+      showAngleIndicator: true
+    }
+  });
+
+
+
+  physicRenderer.canvas.style.bottom = '0px';
+  physicRenderer.canvas.style.top = 'auto';
+
+  MATTER.Render.run(physicRenderer);
+
+
+  // create runner
+  // var runner = MATTER.Runner.create();
+
+  // run the engine
+  // MATTER.Runner.run(runner, physicsEngine);
+
 
   const scene = new THREE.Scene();
 
@@ -76,24 +107,18 @@ async function init(
   const renderPass = new RenderPass(scene, mainCamera);
   const sideRenderPass = new RenderPass(scene, sideCamera);
 
-  const asciiFilter = await createAsciiFilter(asciiTexture, { ratio: mainCanvas.width / mainCanvas.height });
+  const asciiFilter = await createAsciiFilter(asciiTexture, { ratio: mainCanvas.width / mainCanvas.height , enabled:ASCII.enabled});
   composer.addPass(renderPass);
   composer.addPass(asciiFilter);
 
   sideComposer.addPass(sideRenderPass);
 
   const rocket = createRocket();
-  // const rockBodyMaterial = new CANNON.Material('rocketMaterial');
-  // const rocketBody = new CANNON.Body({ mass: 1 });
-  // rocketBody.applyImpulse(new CANNON.Vec3(10, 0, 10), new CANNON.Vec3(rocket.position.x+10, rocket.position.y, rocket.position.z));
-  // rocketBody.angularVelocity.set(0, 0, 1);
-  // rocketBody.velocity.set(-100, -100, 1);
-  console.log(rocket.body);
-  rocket.setPosition(MAP.size / 2, MAP.size / 2);
+  // rocket.setPosition(MAP.size / 2, MAP.size / 2);
+
   scene.add(rocket.mesh);
-  physicsWorld.addBody(rocket.body);
-  // rocket.position.set(MAP.size / 2, MAP.size / 2, 0);
-  // rocketBody.position.set(rocket.position.x, rocket.position.y, rocket.position.z);
+  scene.add(rocket.impulseDebug);
+  MATTER.Composite.add(physicsEngine.world, [rocket.body]);
   mainCamera.position.set(rocket.mesh.position.x, rocket.mesh.position.y, UI.main.cameraDistance);
 
   const floor = createFloor(testMap, {
@@ -113,15 +138,17 @@ async function init(
   function animate(
 
   ) {
-    
+
     const time = new Date().getTime() - startTime;
-    
-    physicsWorld.step(clock.getDelta());
+
+    MATTER.Engine.update(physicsEngine, clock.getDelta());
+    MATTER.Render.lookAt(physicRenderer, rocket.body,MATTER.Vector.create(200,200));
+
     const rocketPos = getNormalizedPosition(rocket.mesh.position);
     const radarRadius = getNormalizedDistance(UI.radius);
-  
+
     rocket.update(time);
-    reliefMap.update(time, rocketPos, radarRadius);
+    reliefMap.update(time, rocketPos, radarRadius, rocket.mesh.rotation.z);
     asciiFilter.update(time, UI.radius / Math.min(window.innerHeight, window.innerWidth));
 
     composer.render();

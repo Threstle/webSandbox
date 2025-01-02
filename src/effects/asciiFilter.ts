@@ -15,10 +15,12 @@ export interface AsciiFilter extends ShaderPass, Updatable { };
 
 export interface AsciiFilterParams {
     ratio?: number;
+    enabled?: boolean;
 }
 
 const defaultParams: AsciiFilterParams = {
     ratio: 1,
+    enabled: true,
 }
 
 export async function createAsciiFilter(
@@ -34,7 +36,7 @@ export async function createAsciiFilter(
         ratio,
     } = sanitizedParams;
 
-    const {resolution} = ASCII;
+    const {resolution,enabled} = ASCII;
 
 
     const loadedTexture = await textureLoader.loadAsync(asciiTexture);
@@ -55,6 +57,8 @@ export async function createAsciiFilter(
             'uHeightRatio': { value: heightRatio },
         },
     });
+
+    asciiFilter.enabled = enabled;
 
 
     const asciiShaderGui = gui.addFolder('AsciiShader');
