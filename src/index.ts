@@ -50,10 +50,10 @@ async function init(
 
   // Get canvases from DOM
   const mainCanvas = document.getElementById("main") as HTMLCanvasElement;
-  const sideCanvas = document.getElementById("side") as HTMLCanvasElement;
+  const reliefCanvas = document.getElementById("relief") as HTMLCanvasElement;
 
   const composer = createRenderer(mainCanvas, UI.main.cameraClear);
-  const sideComposer = createRenderer(sideCanvas, 0xFFFFFF, {
+  const reliefComposer = createRenderer(reliefCanvas, 0xFFFFFF, {
     width: UI.side.size,
     height: UI.side.size,
   });
@@ -69,30 +69,17 @@ async function init(
 
   // create renderer
   const physicRenderer = MATTER.Render.create({
-    element: document.body,
+    canvas: document.getElementById('physics') as HTMLCanvasElement,
     engine: physicsEngine,
     options: {
-      width: 300,
-      height: 300,
+      width: 200,
+      height: 200,
       showVelocity: true,
       showAngleIndicator: true
     }
   });
 
-
-
-  physicRenderer.canvas.style.bottom = '0px';
-  physicRenderer.canvas.style.top = 'auto';
-
   MATTER.Render.run(physicRenderer);
-
-
-  // create runner
-  // var runner = MATTER.Runner.create();
-
-  // run the engine
-  // MATTER.Runner.run(runner, physicsEngine);
-
 
   const scene = new THREE.Scene();
 
@@ -111,10 +98,10 @@ async function init(
   composer.addPass(renderPass);
   composer.addPass(asciiFilter);
 
-  sideComposer.addPass(sideRenderPass);
+  reliefComposer.addPass(sideRenderPass);
 
   const rocket = createRocket();
-  // rocket.setPosition(MAP.size / 2, MAP.size / 2);
+  rocket.setPosition(MAP.size / 2, MAP.size / 2);
 
   scene.add(rocket.mesh);
   scene.add(rocket.impulseDebug);
@@ -152,7 +139,7 @@ async function init(
     asciiFilter.update(time, UI.radius / Math.min(window.innerHeight, window.innerWidth));
 
     composer.render();
-    sideComposer.render();
+    reliefComposer.render();
     stats.update();
 
     mainCamera.position.lerp(new THREE.Vector3(rocket.mesh.position.x, rocket.mesh.position.y, mainCamera.position.z), 0.1);
@@ -169,16 +156,6 @@ async function init(
     composer.dispose();
   }
 }
-
-// Create the canvases
-const main = document.createElement("canvas");
-const side = document.createElement("canvas");
-
-main.id = "main";
-side.id = "side";
-
-document.body.appendChild(main);
-document.body.appendChild(side);
 
 // Create the stat element
 var stats = new Stats();

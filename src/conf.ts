@@ -13,7 +13,7 @@ export const UI = {
         cameraDistance: 500,
     },
     side: {
-        size: 300,
+        size: 200,
         distance: 9999999,
         cameraDistance: 1000,
     }
@@ -25,8 +25,9 @@ export const CAMERA = {
 
 export const ASCII = {
     // resolution: 120,
-    enabled: false,
-    resolution: 124,
+    enabled: true,
+    // resolution: 124,
+    resolution: 62,
     // limit: 0.3,
     // ondulation: 0.1,
     // step:10
