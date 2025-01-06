@@ -15,7 +15,7 @@ import { createReliefMap } from "./entities/reliefMap";
 import { getNormalizedDistance, getNormalizedPosition, to2D } from "./utils/3dUtils";
 import { ASCII, MAP, UI } from "./conf";
 const asciiTexture = require('../ascii.png');
-const oceanFloorTexture = require('../src/assets/map1.png');
+const oceanFloorTexture = require('../src/assets/labyrinth.jpg');
 
 import './style.css';
 
@@ -45,7 +45,6 @@ async function init(
 
   // Init some stuff
   const startTime = new Date().getTime();
-
   const testMap = await textureLoader.loadAsync(oceanFloorTexture);
 
   // Get canvases from DOM
@@ -104,7 +103,6 @@ async function init(
   rocket.setPosition(MAP.size / 2, MAP.size / 2);
 
   scene.add(rocket.mesh);
-  scene.add(rocket.impulseDebug);
   MATTER.Composite.add(physicsEngine.world, [rocket.body]);
   mainCamera.position.set(rocket.mesh.position.x, rocket.mesh.position.y, UI.main.cameraDistance);
 
@@ -122,9 +120,7 @@ async function init(
   let requestId = 0;
 
   const clock = new THREE.Clock();
-  function animate(
-
-  ) {
+  function animate() {
 
     const time = new Date().getTime() - startTime;
 
@@ -136,7 +132,7 @@ async function init(
 
     rocket.update(time);
     reliefMap.update(time, rocketPos, radarRadius, rocket.mesh.rotation.z);
-    asciiFilter.update(time, UI.radius / Math.min(window.innerHeight, window.innerWidth));
+    asciiFilter.update(time, UI.radius / Math.min(window.innerHeight, window.innerWidth),rocket.getViewRes());
 
     composer.render();
     reliefComposer.render();
@@ -144,7 +140,7 @@ async function init(
 
     mainCamera.position.lerp(new THREE.Vector3(rocket.mesh.position.x, rocket.mesh.position.y, mainCamera.position.z), 0.1);
 
-    requestId = requestAnimationFrame(animate.bind(this));
+    requestId = requestAnimationFrame(animate);
 
   }
   requestId = requestAnimationFrame(animate);
@@ -161,5 +157,6 @@ async function init(
 var stats = new Stats();
 stats.showPanel(0);
 document.body.appendChild(stats.dom);
+
 
 init();

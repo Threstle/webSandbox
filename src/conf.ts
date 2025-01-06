@@ -1,5 +1,5 @@
 export const MAP = {
-    size: 5000,
+    size: 15000,
     startingPosX: 2500,
     startingPosY: 2500,
 }

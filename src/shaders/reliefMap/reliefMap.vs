@@ -11,11 +11,11 @@ void main() {
 
 
 
-    float res = 1.0 / uRadius;
+    float res = 0.5 / uRadius;
 
     vec2 offsetUVs = vec2(
-      uv.x+uPos.x*res,
-      uv.y+uPos.y*res  
+      uv.x+uPos.x*res-0.5,
+      uv.y+uPos.y*res-0.5  
     );
 
     float elevation = 1.0-texture2D(renderTarget, offsetUVs/res).r;

@@ -34,8 +34,8 @@ export function createFloor(
             uNoiseFreq: { value: 10 },
             uNoiseAmp: { value: 10 },
             uStep: { value: 1.7 },
-            uColor1: { value: new THREE.Color(0x6737ae) },
-            uColor2: { value: new THREE.Color(0x00e096) },
+            uColor1: { value: new THREE.Color(0x000000) },
+            uColor2: { value: new THREE.Color(0xFFFFFF) },
             uHeightmap: { value: heightMap }
         }
     });

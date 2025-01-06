@@ -70,7 +70,10 @@ export async function createAsciiFilter(
         asciiFilter.enabled = value;
     });
 
-    const asciiWithUpdate = addFunction(asciiFilter, 'update', (time: number,radius:number) => {        
+    const asciiWithUpdate = addFunction(asciiFilter, 'update', (time: number,radius:number,res:number) => {       
+        console.log(res)
+        asciiFilter.material.uniforms.uRes.value = res;
+
         if(radius){
             asciiFilter.material.uniforms.uRadius.value = radius;
         }
