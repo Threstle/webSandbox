@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { container, GUI } from '../utils/autoinject';
-import { addFunction } from '../utils/functionalUtils';
+import { addFunction, completeAssign } from '../utils/functionalUtils';
 import { Updatable } from './../types';
 
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
@@ -10,7 +10,9 @@ import vertexShader from '../shaders/standard/standard.vs';
 import fragmentShader from '../shaders/postprocessing/ascii.fs'
 import { ASCII } from '../conf';
 
-export interface AsciiFilter extends ShaderPass, Updatable { };
+export interface AsciiFilter extends ShaderPass, Updatable { 
+    viewRes:number;
+};
 
 
 export interface AsciiFilterParams {
@@ -71,13 +73,15 @@ export async function createAsciiFilter(
     });
 
     const asciiWithUpdate = addFunction(asciiFilter, 'update', (time: number,radius:number,res:number) => {       
-        console.log(res)
-        asciiFilter.material.uniforms.uRes.value = res;
-
         if(radius){
             asciiFilter.material.uniforms.uRadius.value = radius;
         }
     });
 
-    return asciiWithUpdate;
+    return completeAssign(asciiWithUpdate,{
+        set viewRes (value: number) { 
+            asciiFilter.material.uniforms.uRes.value = value;
+        },
+        get viewRes () { return asciiFilter.material.uniforms.uRes.value },
+    });
 }

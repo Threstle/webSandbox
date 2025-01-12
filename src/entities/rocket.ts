@@ -1,7 +1,7 @@
 import * as MATTER from 'matter-js';
 import * as THREE from 'three';
 import { container, GUI } from '../utils/autoinject';
-import { addFunction } from '../utils/functionalUtils';
+import { addFunction, completeAssign } from '../utils/functionalUtils';
 import { Destroyable, Updatable, Vec2, Vec3 } from './../types';
 import * as Matter from 'matter-js';
 import { setLabelColor, setLabelText } from '../utils/uiUtils';
@@ -10,7 +10,11 @@ export interface Rocket extends Destroyable, Updatable {
   mesh: THREE.Mesh;
   setPosition(x: number, y: number): void;
   body: MATTER.Body;
-  getViewRes: ()=>number;
+  viewRes:number;
+  isAccelerating:boolean;
+  isRotatingLeft:boolean;
+  isRotatingRight:boolean;
+  isBreaking:boolean;
 };
 
 
@@ -63,35 +67,38 @@ export function createRocket(
   }
 
 
-  document.addEventListener('keydown', (e) => {
-    if (e.code === 'ArrowUp') {
-      isAccelerating = !isAccelerating;
-      isBreaking = false;
-    }
-    if (e.code === 'ArrowLeft') {
-      isRotatingLeft = !isRotatingLeft;
-      isBreaking = false;
+  // document.addEventListener('keydown', (e) => {
+  //   if (e.code === 'ArrowUp') {
+  //     isAccelerating = !isAccelerating;
+  //     isBreaking = false;
+  //   }
+  //   if (e.code === 'ArrowLeft') {
+  //     isRotatingLeft = !isRotatingLeft;
+  //     isBreaking = false;
 
-    }
-    if (e.code === 'ArrowRight') {
-      isRotatingRight = !isRotatingRight;
-      isBreaking = false;
+  //   }
+  //   if (e.code === 'ArrowRight') {
+  //     isRotatingRight = !isRotatingRight;
+  //     isBreaking = false;
 
-    }
-    if (e.code === 'ArrowDown') {
-      isBreaking = !isBreaking;
-      isAccelerating = false;
-      isRotatingLeft = false;
-      isRotatingRight = false;
-    }
-    if(e.code === 'KeyR'){
-      viewRes = Math.min(viewRes+5,100);
-    }
-    if(e.code === 'KeyF'){
-      viewRes = Math.max(viewRes-5,0);
-    }
+  //   }
+  //   if (e.code === 'ArrowDown') {
+  //     isBreaking = !isBreaking;
+  //     isAccelerating = false;
+  //     isRotatingLeft = false;
+  //     isRotatingRight = false;
+  //   }
+  //   if(e.code === 'KeyR'){
+  //     viewRes = Math.min(viewRes+5,100);
+  //   }
+  //   if(e.code === 'KeyF'){
+  //     viewRes = Math.max(viewRes-5,0);
+  //   }
+  //   if(e.code === 'Space'){
+  //     fuel = 1000;
+  //   }
 
-  });
+  // });
 
 
   const setPosition = (x: number, y: number) => {
@@ -148,12 +155,19 @@ export function createRocket(
     mesh.material.dispose();
   }
 
-  return {
-    ...base,
+  return completeAssign(base, {
     setPosition,
     update,
     destroy,
-    getViewRes:()=>viewRes,
+    get viewRes () { return viewRes },
+    get isAccelerating () { return isAccelerating },
+    set isAccelerating (value: boolean) { isAccelerating = value },
+    get isRotatingLeft () { return isRotatingLeft },
+    set isRotatingLeft (value: boolean) { isRotatingLeft = value },
+    get isRotatingRight () { return isRotatingRight },
+    set isRotatingRight (value: boolean) { isRotatingRight = value },
+    get isBreaking () { return isBreaking },
+    set isBreaking (value: boolean) { isBreaking = value },
+  });
 
-  };
 }

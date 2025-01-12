@@ -37,6 +37,7 @@ function createRenderer(
 }
 
 
+
 async function init(
   textureLoader = container.resolve<THREE.TextureLoader>("TextureLoader"),
   gui = container.resolve<GUI>("GUI")
@@ -93,7 +94,7 @@ async function init(
   const renderPass = new RenderPass(scene, mainCamera);
   const sideRenderPass = new RenderPass(scene, sideCamera);
 
-  const asciiFilter = await createAsciiFilter(asciiTexture, { ratio: mainCanvas.width / mainCanvas.height , enabled:ASCII.enabled});
+  const asciiFilter = await createAsciiFilter(asciiTexture, { ratio: mainCanvas.width / mainCanvas.height, enabled: ASCII.enabled });
   composer.addPass(renderPass);
   composer.addPass(asciiFilter);
 
@@ -125,15 +126,14 @@ async function init(
     const time = new Date().getTime() - startTime;
 
     MATTER.Engine.update(physicsEngine, clock.getDelta());
-    MATTER.Render.lookAt(physicRenderer, rocket.body,MATTER.Vector.create(200,200));
+    MATTER.Render.lookAt(physicRenderer, rocket.body, MATTER.Vector.create(200, 200));
 
     const rocketPos = getNormalizedPosition(rocket.mesh.position);
     const radarRadius = getNormalizedDistance(UI.radius);
 
     rocket.update(time);
     reliefMap.update(time, rocketPos, radarRadius, rocket.mesh.rotation.z);
-    asciiFilter.update(time, UI.radius / Math.min(window.innerHeight, window.innerWidth),rocket.getViewRes());
-
+    asciiFilter.update(time, UI.radius / Math.min(window.innerHeight, window.innerWidth), rocket.viewRes);
     composer.render();
     reliefComposer.render();
     stats.update();
@@ -144,6 +144,39 @@ async function init(
 
   }
   requestId = requestAnimationFrame(animate);
+
+  // Events
+
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'ArrowUp') {
+      rocket.isAccelerating = !rocket.isAccelerating;
+      rocket.isBreaking = false;
+    }
+    if (e.code === 'ArrowLeft') {
+      rocket.isRotatingLeft = !rocket.isRotatingLeft;
+      rocket.isBreaking = false;
+
+    }
+    if (e.code === 'ArrowRight') {
+      rocket.isRotatingRight = !rocket.isRotatingRight;
+      rocket.isBreaking = false;
+
+    }
+    if (e.code === 'ArrowDown') {
+      rocket.isBreaking = !rocket.isBreaking;
+      rocket.isAccelerating = false;
+      rocket.isRotatingLeft = false;
+      rocket.isRotatingRight = false;
+    }
+    if (e.code === 'KeyR') {
+      asciiFilter.viewRes = Math.min(asciiFilter.viewRes + 5, 100);
+    }
+    if (e.code === 'KeyF') {
+      asciiFilter.viewRes = Math.max(asciiFilter.viewRes - 5, 0);
+    }
+    if (e.code === 'Space') {
+    }
+  });
 
 
   return () => {
