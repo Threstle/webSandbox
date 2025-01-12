@@ -29,7 +29,7 @@ export function createRocket(
   let fuel = 1000;
   let viewRes = 0
 
-  const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const material = new THREE.MeshBasicMaterial({ color: 0x00FF00 });
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(50, 100, 1),
     material
@@ -67,38 +67,7 @@ export function createRocket(
   }
 
 
-  // document.addEventListener('keydown', (e) => {
-  //   if (e.code === 'ArrowUp') {
-  //     isAccelerating = !isAccelerating;
-  //     isBreaking = false;
-  //   }
-  //   if (e.code === 'ArrowLeft') {
-  //     isRotatingLeft = !isRotatingLeft;
-  //     isBreaking = false;
 
-  //   }
-  //   if (e.code === 'ArrowRight') {
-  //     isRotatingRight = !isRotatingRight;
-  //     isBreaking = false;
-
-  //   }
-  //   if (e.code === 'ArrowDown') {
-  //     isBreaking = !isBreaking;
-  //     isAccelerating = false;
-  //     isRotatingLeft = false;
-  //     isRotatingRight = false;
-  //   }
-  //   if(e.code === 'KeyR'){
-  //     viewRes = Math.min(viewRes+5,100);
-  //   }
-  //   if(e.code === 'KeyF'){
-  //     viewRes = Math.max(viewRes-5,0);
-  //   }
-  //   if(e.code === 'Space'){
-  //     fuel = 1000;
-  //   }
-
-  // });
 
 
   const setPosition = (x: number, y: number) => {

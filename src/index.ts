@@ -13,11 +13,12 @@ import { createFloor } from "./entities/floor";
 import { createAsciiFilter } from "./effects/asciiFilter";
 import { createReliefMap } from "./entities/reliefMap";
 import { getNormalizedDistance, getNormalizedPosition, to2D } from "./utils/3dUtils";
-import { ASCII, MAP, UI } from "./conf";
+import { ASCII, GENERAL, MAP, UI } from "./conf";
 const asciiTexture = require('../ascii.png');
-const oceanFloorTexture = require('../src/assets/labyrinth.jpg');
+const oceanFloorTexture = require('../src/assets/space2.png');
 
 import './style.css';
+import { Asteroid, createAsteroid } from "./entities/asteroid";
 
 function createRenderer(
   canvas: HTMLCanvasElement,
@@ -113,6 +114,21 @@ async function init(
   floor.position.set(MAP.size / 2, MAP.size / 2, 0);
   scene.add(floor);
 
+
+  const asteroids:Asteroid[] = [];
+  const asteroidScales = [1,1,1,1,2,2,2,3,3,4,5];
+
+  for(let i=0;i<30;i++){
+    const randomScale = asteroidScales[Math.floor(Math.random()*asteroidScales.length)];
+    const baseScale = 100;
+    const scale = baseScale*randomScale;
+    const asteroid = createAsteroid(Math.random()*scale,Math.random()*scale);
+    asteroid.setPosition(Math.random()*MAP.size, Math.random()*MAP.size);
+    scene.add(asteroid.mesh);
+    asteroids.push(asteroid);
+    MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
+  }
+
   const reliefMap = await createReliefMap(testMap);
   reliefMap.position.set(UI.side.distance, UI.side.distance, 0);
   reliefMap.rotation.x = -Math.PI / 4;
@@ -132,11 +148,15 @@ async function init(
     const radarRadius = getNormalizedDistance(UI.radius);
 
     rocket.update(time);
+    asteroids.forEach(asteroid=>asteroid.update(time));
+    if(GENERAL.realTimeRender){
+      composer.render();
+    }
     reliefMap.update(time, rocketPos, radarRadius, rocket.mesh.rotation.z);
     asciiFilter.update(time, UI.radius / Math.min(window.innerHeight, window.innerWidth), rocket.viewRes);
-    composer.render();
-    reliefComposer.render();
     stats.update();
+    reliefComposer.render();
+
 
     mainCamera.position.lerp(new THREE.Vector3(rocket.mesh.position.x, rocket.mesh.position.y, mainCamera.position.z), 0.1);
 
@@ -175,6 +195,8 @@ async function init(
       asciiFilter.viewRes = Math.max(asciiFilter.viewRes - 5, 0);
     }
     if (e.code === 'Space') {
+      composer.render();
+
     }
   });
 

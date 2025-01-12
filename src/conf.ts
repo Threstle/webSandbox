@@ -1,5 +1,9 @@
+export const GENERAL = {
+    realTimeRender:true
+}
+
 export const MAP = {
-    size: 15000,
+    size: 1500,
     startingPosX: 2500,
     startingPosY: 2500,
 }
@@ -26,8 +30,8 @@ export const CAMERA = {
 export const ASCII = {
     // resolution: 120,
     enabled: true,
-    // resolution: 124,
-    resolution: 62,
+    resolution: 124,
+    // resolution: 62,
     // limit: 0.3,
     // ondulation: 0.1,
     // step:10
