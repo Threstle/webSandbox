@@ -61,20 +61,20 @@ export function createAsteroid(
         //     "################",
         // ],
         [
+            "1###############",
+            "###7#####2######",
+            "################",
+            "##6#############",
+            "###############",
+            "#####5##########",
             "################",
             "################",
-            "######1#2#######",
-            "################",
-            "####B#C#3#4####",
-            "################",
-            "####A#9#6#5#####",
-            "################",
-            "######8#7#######",
             "################",
             "################",
+            "4#########3#####",
         ],
     ];
-    const amp = 20;
+    const amp = 10;
     const vertices: THREE.Vector2[] = [];
 
     const key = {
@@ -120,33 +120,63 @@ export function createAsteroid(
 
     const randomShapeTemplate = asteroidShape[Math.floor(Math.random() * asteroidShape.length)];
 
+
+    let bounds = [0, 0, 0, 0];
     // const shapeRatio = asteroidShape.length / asteroidShape[0].length;
     randomShapeTemplate.forEach((row, y) => {
         const rowArray = row.split('');
         rowArray.forEach((char, x) => {
+            
             if (char !== '#') {
-                vertices[key[char as keyof typeof key]] = new THREE.Vector2(x * amp, y * amp);
+
+                bounds = [
+                    Math.min(bounds[0], x),
+                    Math.min(bounds[1], y),
+                    Math.max(bounds[2], x),
+                    Math.max(bounds[3], y),
+                ]
+
+                vertices[key[char as keyof typeof key]] = new THREE.Vector2(x, y);
             }
         });
     })
 
+    vertices.forEach(v => {
+        v.x -= bounds[2]/2;
+        v.y -= bounds[3]/2;
+    });
+
     shape.setFromPoints(vertices);
-    const geometry = new THREE.ExtrudeGeometry(shape);
+    const geometry = new THREE.ShapeGeometry(shape);
+
+    const bodyVertices = vertices.map(v => v.clone().multiplyScalar(20));
+    // const geometry = new THREE.BoxGeometry(100, 100, 1);
 
     const material = new THREE.MeshBasicMaterial({ color: 0x00FF00, side: THREE.DoubleSide });
     const mesh = new THREE.Mesh(
         geometry,
         material
     );
+    mesh.scale.set(20, 20, 1);
+    // mesh.scale.set(amp,amp,1);
 
-    const body = MATTER.Bodies.fromVertices(0, 0, [vertices], {
+    const meshDebug = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshBasicMaterial({ color: 0xFF0000, side: THREE.DoubleSide })
+    );
+
+    mesh.add(meshDebug);
+
+    // const body = MATTER.Bodies.rectangle(0, 0, 100, 100)
+
+    const body = MATTER.Bodies.fromVertices(0, 0, [bodyVertices], {
         friction: 1,
         mass: 10,
     });
 
 
-    MATTER.Body.setAngularVelocity(body, Math.random() * 1);
-    MATTER.Body.setVelocity(body, new THREE.Vector2(Math.random() * 1, Math.random() * 1));
+    // MATTER.Body.setAngularVelocity(body, Math.random() * 1);
+    // MATTER.Body.setVelocity(body, new THREE.Vector2(Math.random() * 1, Math.random() * 1));
 
     const base = {
         mesh,
@@ -155,7 +185,7 @@ export function createAsteroid(
 
     const updatePositionFromBody = () => {
         mesh.position.set(body.position.x, body.position.y, mesh.position.z);
-        mesh.rotation.z = -body.angle;
+        mesh.rotation.z = body.angle;
     }
 
     let lastTimestamp = 0;

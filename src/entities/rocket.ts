@@ -58,7 +58,7 @@ export function createRocket(
 
   const updatePositionFromBody = () => {
     mesh.position.set(body.position.x, body.position.y, mesh.position.z);
-    mesh.rotation.z = -body.angle;
+    mesh.rotation.z = body.angle;
   }
 
   const base = {
@@ -95,11 +95,11 @@ export function createRocket(
 
     }
     if (isRotatingLeft) {
-      MATTER.Body.setAngularVelocity(body, -5);
+      MATTER.Body.setAngularVelocity(body, 5);
       setLabelColor('turnLeftLabel', 'red');
     }
     if (isRotatingRight) {
-      MATTER.Body.setAngularVelocity(body, 5);
+      MATTER.Body.setAngularVelocity(body, -5);
       setLabelColor('turnRightLabel', 'red');
     }
     if (isBreaking) {

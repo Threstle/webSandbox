@@ -43,3 +43,7 @@ canvas{
   display:flex;
   flex-direction: column;
 }
+
+#physics{
+  transform: scale(1, -1);
+}
