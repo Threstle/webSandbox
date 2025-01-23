@@ -25,12 +25,14 @@
     "webpack-glsl-loader": "^1.0.1"
   },
   "dependencies": {
+    "@techstark/opencv-js": "^4.10.0-release.1",
     "@types/cannon": "^0.1.13",
     "@types/dat.gui": "^0.7.13",
     "cannon": "^0.6.2",
     "lil-gui": "^0.19.2",
     "lodash": "^4.17.21",
     "matter-js": "^0.20.0",
+    "poly-decomp": "^0.3.0",
     "reflect-metadata": "^0.2.2",
     "stats.js": "^0.17.0",
     "three": "^0.167.0",

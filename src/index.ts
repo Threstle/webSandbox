@@ -2,7 +2,7 @@
 
 import "reflect-metadata";
 import * as THREE from 'three';
-import * as Stats from "stats.js";
+import Stats from "stats.js";
 import * as MATTER from 'matter-js';
 import GUI from 'lil-gui';
 import { container } from "./utils/autoinject";
@@ -80,6 +80,8 @@ async function init(
     }
   });
 
+  MATTER.Common.setDecomp(require('poly-decomp'));
+
   MATTER.Render.run(physicRenderer);
 
   const scene = new THREE.Scene();
@@ -115,15 +117,15 @@ async function init(
   scene.add(floor);
 
 
-  const asteroids:Asteroid[] = [];
-  const asteroidScales = [1,1,1,1,2,2,2,3,3,4,5];
+  const asteroids: Asteroid[] = [];
+  const asteroidScales = [1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 5];
 
-  for(let i=0;i<30;i++){
-    const randomScale = asteroidScales[Math.floor(Math.random()*asteroidScales.length)];
+  for (let i = 0; i < 30; i++) {
+    const randomScale = asteroidScales[Math.floor(Math.random() * asteroidScales.length)];
     const baseScale = 100;
-    const scale = baseScale*randomScale;
-    const asteroid = createAsteroid(Math.random()*scale,Math.random()*scale);
-    asteroid.setPosition(Math.random()*MAP.size, Math.random()*MAP.size);
+    const scale = baseScale * randomScale;
+    const asteroid = createAsteroid(Math.random() * scale, Math.random() * scale);
+    asteroid.setPosition(Math.random() * MAP.size, Math.random() * MAP.size);
     scene.add(asteroid.mesh);
     asteroids.push(asteroid);
     MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
@@ -148,8 +150,8 @@ async function init(
     const radarRadius = getNormalizedDistance(UI.radius);
 
     rocket.update(time);
-    asteroids.forEach(asteroid=>asteroid.update(time));
-    if(GENERAL.realTimeRender){
+    asteroids.forEach(asteroid => asteroid.update(time));
+    if (GENERAL.realTimeRender) {
       composer.render();
     }
     reliefMap.update(time, rocketPos, radarRadius, rocket.mesh.rotation.z);
