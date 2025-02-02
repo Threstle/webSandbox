@@ -5,6 +5,7 @@ import { addFunction, completeAssign } from '../utils/functionalUtils';
 import { Destroyable, Updatable, Vec2, Vec3 } from './../types';
 import * as Matter from 'matter-js';
 import { setLabelColor, setLabelText } from '../utils/uiUtils';
+import { ROCKET } from '../conf';
 
 export interface Rocket extends Destroyable, Updatable {
   mesh: THREE.Mesh;
@@ -66,10 +67,6 @@ export function createRocket(
     body,
   }
 
-
-
-
-
   const setPosition = (x: number, y: number) => {
     Matter.Body.setPosition(body, MATTER.Vector.create(x, y));
     updatePositionFromBody();
@@ -88,24 +85,25 @@ export function createRocket(
 
     if (isAccelerating) {
       MATTER.Body.setVelocity(body, new THREE.Vector2(
-        -forward.x * 500,
-        forward.y * 500
+        -forward.x * ROCKET.speed,
+        forward.y * ROCKET.speed
       ));
       setLabelColor('accelerateLabel', 'red');
 
     }
     if (isRotatingLeft) {
-      MATTER.Body.setAngularVelocity(body, 5);
+      MATTER.Body.setAngularVelocity(body, ROCKET.angularSpeed);
+
       setLabelColor('turnLeftLabel', 'red');
     }
     if (isRotatingRight) {
-      MATTER.Body.setAngularVelocity(body, -5);
+      MATTER.Body.setAngularVelocity(body, -ROCKET.angularSpeed);
       setLabelColor('turnRightLabel', 'red');
     }
     if (isBreaking) {
       setLabelColor('breakLabel', 'red');
-      MATTER.Body.setSpeed(body, body.speed - 4);
-      MATTER.Body.setAngularSpeed(body, body.angularSpeed - 0.03);
+      MATTER.Body.setSpeed(body, body.speed - ROCKET.breakForce);
+      MATTER.Body.setAngularSpeed(body, body.angularSpeed - ROCKET.angularBreakForce);
     }
 
     if (time - lastTimestamp > 100) {

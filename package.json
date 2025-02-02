@@ -32,6 +32,7 @@
     "lil-gui": "^0.19.2",
     "lodash": "^4.17.21",
     "matter-js": "^0.20.0",
+    "pathseg": "^1.2.1",
     "poly-decomp": "^0.3.0",
     "reflect-metadata": "^0.2.2",
     "stats.js": "^0.17.0",

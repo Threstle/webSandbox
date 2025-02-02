@@ -27,9 +27,19 @@ export const CAMERA = {
 
 }
 
+export const ROCKET = {
+    fuel: 1000,
+    // speed: 500,
+    speed: 1000,
+    angularSpeed: 10,
+    // angularSpeed: 5,
+    breakForce: 4,
+    angularBreakForce: 0.03,
+}
+
 export const ASCII = {
     // resolution: 120,
-    enabled: true,
+    enabled: false,
     resolution: 124,
     // resolution: 62,
     // limit: 0.3,

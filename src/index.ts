@@ -1,5 +1,4 @@
 "use strict";
-
 import "reflect-metadata";
 import * as THREE from 'three';
 import Stats from "stats.js";
@@ -44,7 +43,6 @@ async function init(
   gui = container.resolve<GUI>("GUI")
 ): Promise<() => void> {
 
-
   // Init some stuff
   const startTime = new Date().getTime();
   const testMap = await textureLoader.loadAsync(oceanFloorTexture);
@@ -75,12 +73,12 @@ async function init(
     options: {
       width: 200,
       height: 200,
+      // height: window.innerHeight,
+      // width: window.innerWidth,
       showVelocity: true,
-      showAngleIndicator: true
+      showAngleIndicator: true,
     }
   });
-
-  MATTER.Common.setDecomp(require('poly-decomp'));
 
   MATTER.Render.run(physicRenderer);
 
@@ -120,23 +118,23 @@ async function init(
   const asteroids: Asteroid[] = [];
   const asteroidScales = [1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 5];
 
-  // for (let i = 0; i < 30; i++) {
-  //   const randomScale = asteroidScales[Math.floor(Math.random() * asteroidScales.length)];
-  //   const baseScale = 100;
-  //   const scale = baseScale * randomScale;
-  //   const asteroid = createAsteroid(Math.random() * scale, Math.random() * scale);
-  //   asteroid.setPosition(Math.random() * MAP.size, Math.random() * MAP.size);
-  //   scene.add(asteroid.mesh);
-  //   asteroids.push(asteroid);
-  //   MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
-  // }
+  for (let i = 0; i < 50; i++) {
+    const randomScale = asteroidScales[Math.floor(Math.random() * asteroidScales.length)];
+    const baseScale = 0.2;
+    const scale = baseScale * randomScale;
+    const asteroid = await createAsteroid(Math.random() * scale);
+    asteroid.setPosition(Math.random() * MAP.size, Math.random() * MAP.size);
+    scene.add(asteroid.mesh);
+    asteroids.push(asteroid);
+    MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
+  }
 
-  const asteroid = createAsteroid(1, 1);
-  asteroid.setPosition(rocket.body.position.x+100, rocket.body.position.y);
-  scene.add(asteroid.mesh);
-  MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
-  asteroids.push(asteroid);
-  
+  // const asteroid = await createAsteroid(1);
+  // asteroid.setPosition(rocket.body.position.x+100, rocket.body.position.y);
+  // scene.add(asteroid.mesh);
+  // MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
+  // asteroids.push(asteroid);
+
   const reliefMap = await createReliefMap(testMap);
   reliefMap.position.set(UI.side.distance, UI.side.distance, 0);
   reliefMap.rotation.x = -Math.PI / 4;
