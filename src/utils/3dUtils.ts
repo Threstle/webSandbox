@@ -17,3 +17,25 @@ export function getNormalizedPosition(pos: THREE.Vector3 | THREE.Vector2) {
 export function getNormalizedDistance(distance: number) {
     return distance / MAP.size;
 }
+
+export function getBoundsFromVertices(vertices: THREE.Vector2[]) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (let i = 0; i < vertices.length; i++) {
+        const vertex = vertices[i];
+        if (vertex.x < minX) minX = vertex.x;
+        if (vertex.x > maxX) maxX = vertex.x;
+        if (vertex.y < minY) minY = vertex.y;
+        if (vertex.y > maxY) maxY = vertex.y;
+    }
+
+    return {
+        minX,
+        minY,
+        maxX,
+        maxY,
+    };
+}

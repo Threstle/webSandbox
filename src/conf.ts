@@ -33,8 +33,10 @@ export const ROCKET = {
     speed: 1000,
     angularSpeed: 10,
     // angularSpeed: 5,
-    breakForce: 4,
-    angularBreakForce: 0.03,
+    // breakForce: 4,
+    breakForce: 10,
+    angularBreakForce: 0.3,
+    // angularBreakForce: 0.03,
 }
 
 export const ASCII = {
