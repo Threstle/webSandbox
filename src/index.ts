@@ -20,6 +20,7 @@ import './style.css';
 import { Asteroid, createAsteroid } from "./entities/asteroid";
 import { getVerticesFromSVG } from "./utils/imageUtils";
 import { createSmokeParticle, SmokeParticle } from "./entities/smokeParticle";
+import { setupInputHandlers } from "./utils/inputManager";
 
 function createRenderer(
   canvas: HTMLCanvasElement,
@@ -167,8 +168,6 @@ async function init(
   reliefMap.rotation.x = -Math.PI / 4;
   scene.add(reliefMap);
 
-
-
   let requestId = 0;
 
   let lastTimestamp = 0;
@@ -227,46 +226,14 @@ async function init(
   }
   requestId = requestAnimationFrame(animate);
 
-  // Events
-
-  document.addEventListener('keydown', (e) => {
-    if (e.code === 'ArrowUp') {
-      rocket.isAccelerating = !rocket.isAccelerating;
-      rocket.isBreaking = false;
-    }
-    if (e.code === 'ArrowLeft') {
-      rocket.isRotatingLeft = !rocket.isRotatingLeft;
-      rocket.isBreaking = false;
-
-    }
-    if (e.code === 'ArrowRight') {
-      rocket.isRotatingRight = !rocket.isRotatingRight;
-      rocket.isBreaking = false;
-
-    }
-    if (e.code === 'ArrowDown') {
-      rocket.isBreaking = !rocket.isBreaking;
-      rocket.isAccelerating = false;
-      rocket.isRotatingLeft = false;
-      rocket.isRotatingRight = false;
-    }
-    if (e.code === 'KeyR') {
-      asciiFilter.viewRes = Math.min(asciiFilter.viewRes + 5, 100);
-    }
-    if (e.code === 'KeyF') {
-      asciiFilter.viewRes = Math.max(asciiFilter.viewRes - 5, 0);
-    }
-    if (e.code === 'Space') {
-      composer.render();
-
-    }
-  });
-
+  // Setup input handlers
+  const cleanupInputHandlers = setupInputHandlers({ rocket });
 
   return () => {
     //TODO: destroy
     window.cancelAnimationFrame(requestId);
     composer.dispose();
+    cleanupInputHandlers();
   }
 }
 
