@@ -19,6 +19,7 @@ const oceanFloorTexture = require('../src/assets/space2.png');
 import './style.css';
 import { Asteroid, createAsteroid } from "./entities/asteroid";
 import { getVerticesFromSVG } from "./utils/imageUtils";
+import { createSmokeParticle, SmokeParticle } from "./entities/smokeParticle";
 
 function createRenderer(
   canvas: HTMLCanvasElement,
@@ -47,7 +48,7 @@ async function init(
   MATTER.Common.setDecomp(require('poly-decomp'));
 
   // Preload every SVG
-  const asteroidVertices= [
+  const asteroidVertices = [
     await getVerticesFromSVG(require('./assets/ast1.svg')),
     await getVerticesFromSVG(require('./assets/ast2.svg')),
     await getVerticesFromSVG(require('./assets/ast3.svg')),
@@ -130,9 +131,9 @@ async function init(
 
 
   const asteroids: Asteroid[] = [];
-  const asteroidScales = [0.5, 0.5, 0.5, 0.5,0.5,0.5,0.5,0.5, 1, 1, 2, 3, 3, 4, 5];
+  const asteroidScales = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 1, 2, 3, 3, 4, 5];
 
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 100; i++) {
     const randomScale = asteroidScales[Math.floor(Math.random() * asteroidScales.length)];
     const baseScale = 0.1;
     const scale = baseScale * randomScale;
@@ -145,13 +146,32 @@ async function init(
     asteroids.push(asteroid);
     MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
   }
+
+  const smokeParticles: SmokeParticle[] = [];
+  const getFreeSmokeParticle = () => {
+
+    const smokeParticle = smokeParticles.find(p => !p.isAlive);
+    if (smokeParticle) {
+      return smokeParticle;
+    }
+
+    const newSmokeParticle = createSmokeParticle();
+    scene.add(newSmokeParticle.mesh);
+    // MATTER.Composite.add(physicsEngine.world,newSmokeParticle.body);
+    return newSmokeParticle
+  }
+
+
   const reliefMap = await createReliefMap(testMap);
   reliefMap.position.set(UI.side.distance, UI.side.distance, 0);
   reliefMap.rotation.x = -Math.PI / 4;
   scene.add(reliefMap);
 
+
+
   let requestId = 0;
 
+  let lastTimestamp = 0;
   const clock = new THREE.Clock();
   function animate() {
 
@@ -164,6 +184,7 @@ async function init(
     const radarRadius = getNormalizedDistance(UI.radius);
 
     rocket.update(time);
+    smokeParticles.forEach(smokeParticle => smokeParticle.update(time));
     asteroids.forEach(asteroid => asteroid.update(time));
     if (GENERAL.realTimeRender) {
       composer.render();
@@ -173,10 +194,35 @@ async function init(
     stats.update();
     reliefComposer.render();
 
-
     mainCamera.position.lerp(new THREE.Vector3(rocket.mesh.position.x, rocket.mesh.position.y, mainCamera.position.z), 0.1);
 
     requestId = requestAnimationFrame(animate);
+
+    if (rocket.isAccelerating) {
+      const spawnPos = rocket.getPartPositions().mainThruster;
+      getFreeSmokeParticle().spawn(spawnPos);
+    }
+
+    if (rocket.isRotatingLeft) {
+      [
+        rocket.getPartPositions().rightThrusterTop,
+        rocket.getPartPositions().leftThrusterBottom
+      ].forEach(spawnPos => {
+        getFreeSmokeParticle().spawn(spawnPos);
+      })
+    }
+
+
+    // if(rocket.isRotatingRight){
+    //   const spawnPos = rocket.getPartPositions().rightThruster;
+    //   getFreeSmokeParticle().spawn(spawnPos);
+    // }
+
+    if (time - lastTimestamp < 100) {
+      lastTimestamp = time;
+
+
+    }
 
   }
   requestId = requestAnimationFrame(animate);

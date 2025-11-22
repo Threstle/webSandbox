@@ -71,7 +71,6 @@ export async function createAsteroid(
         mesh.rotation.z = body.angle;
     }
 
-    let lastTimestamp = 0;
     const update = (time: number) => {
         updatePositionFromBody();
     }

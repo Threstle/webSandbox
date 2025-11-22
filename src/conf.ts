@@ -41,8 +41,8 @@ export const ROCKET = {
 
 export const ASCII = {
     // resolution: 120,
-    enabled: false,
-    resolution: 124,
+    enabled: true,
+    resolution: 300,
     // resolution: 62,
     // limit: 0.3,
     // ondulation: 0.1,
