@@ -99,7 +99,6 @@ export async function createRocket(
 
   const getPartPositions = () => {
 
-    console.log(ogBounds);
     const width = ogBounds.maxX - ogBounds.minX;
     const height = ogBounds.maxY - ogBounds.minY;
 
@@ -112,8 +111,8 @@ export async function createRocket(
       mainThruster: rotate({ x: mesh.position.x, y: mesh.position.y - height / 2 }),
       rightThrusterTop: rotate({ x:right, y: mesh.position.y + height / 9 }),
       leftThrusterBottom: rotate({ x: left, y: mesh.position.y - height / 9 }),
-      leftThrusterTop: rotate({ x:right, y: mesh.position.y - height / 3 }),
-      rightThrusterBottom: rotate({ x: right, y: mesh.position.y - height / 3 }),
+      leftThrusterTop: rotate({ x:left, y: mesh.position.y + height / 9 }),
+      rightThrusterBottom: rotate({ x: right, y: mesh.position.y - height / 4.5 }),
     }
   }
 

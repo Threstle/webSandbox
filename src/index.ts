@@ -19,7 +19,7 @@ const oceanFloorTexture = require('../src/assets/space2.png');
 import './style.css';
 import { Asteroid, createAsteroid } from "./entities/asteroid";
 import { getVerticesFromSVG } from "./utils/imageUtils";
-import { createSmokeParticle, SmokeParticle } from "./entities/smokeParticle";
+import { SmokeParticlePool } from "./utils/smokeParticlePool";
 import { setupInputHandlers } from "./utils/inputManager";
 
 function createRenderer(
@@ -148,19 +148,7 @@ async function init(
     MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
   }
 
-  const smokeParticles: SmokeParticle[] = [];
-  const getFreeSmokeParticle = () => {
-
-    const smokeParticle = smokeParticles.find(p => !p.isAlive);
-    if (smokeParticle) {
-      return smokeParticle;
-    }
-
-    const newSmokeParticle = createSmokeParticle();
-    scene.add(newSmokeParticle.mesh);
-    // MATTER.Composite.add(physicsEngine.world,newSmokeParticle.body);
-    return newSmokeParticle
-  }
+  const smokePool = new SmokeParticlePool(scene);
 
 
   const reliefMap = await createReliefMap(testMap);
@@ -171,6 +159,17 @@ async function init(
   let requestId = 0;
 
   let lastTimestamp = 0;
+
+  // Individual cooldown timers for each thruster
+  const thrusterCooldowns = {
+    mainThruster: 0,
+    rightThrusterTop: 0,
+    leftThrusterBottom: 0,
+    leftThrusterTop: 0,
+    rightThrusterBottom: 0
+  };
+  const smokeCooldown = 50; // milliseconds between smoke spawns per thruster
+
   const clock = new THREE.Clock();
   function animate() {
 
@@ -183,7 +182,7 @@ async function init(
     const radarRadius = getNormalizedDistance(UI.radius);
 
     rocket.update(time);
-    smokeParticles.forEach(smokeParticle => smokeParticle.update(time));
+    smokePool.update(time);
     asteroids.forEach(asteroid => asteroid.update(time));
     if (GENERAL.realTimeRender) {
       composer.render();
@@ -197,30 +196,45 @@ async function init(
 
     requestId = requestAnimationFrame(animate);
 
-    if (rocket.isAccelerating) {
+    // Main thruster smoke
+    if (rocket.isAccelerating && time - thrusterCooldowns.mainThruster >= smokeCooldown) {
       const spawnPos = rocket.getPartPositions().mainThruster;
-      getFreeSmokeParticle().spawn(spawnPos);
+      smokePool.spawn(spawnPos, { x: 0, y: 0 }, time);
+      thrusterCooldowns.mainThruster = time;
     }
 
+    // Rotation left thrusters
     if (rocket.isRotatingLeft) {
-      [
-        rocket.getPartPositions().rightThrusterTop,
-        rocket.getPartPositions().leftThrusterBottom
-      ].forEach(spawnPos => {
-        getFreeSmokeParticle().spawn(spawnPos);
-      })
+      const positions = rocket.getPartPositions();
+
+      if (time - thrusterCooldowns.rightThrusterTop >= smokeCooldown) {
+        smokePool.spawn(positions.rightThrusterTop, { x: 0, y: 0 }, time);
+        thrusterCooldowns.rightThrusterTop = time;
+      }
+
+      if (time - thrusterCooldowns.leftThrusterBottom >= smokeCooldown) {
+        smokePool.spawn(positions.leftThrusterBottom, { x: 0, y: 0 }, time);
+        thrusterCooldowns.leftThrusterBottom = time;
+      }
     }
 
+    // Rotation right thrusters
+    if (rocket.isRotatingRight) {
+      const positions = rocket.getPartPositions();
 
-    // if(rocket.isRotatingRight){
-    //   const spawnPos = rocket.getPartPositions().rightThruster;
-    //   getFreeSmokeParticle().spawn(spawnPos);
-    // }
+      if (time - thrusterCooldowns.leftThrusterTop >= smokeCooldown) {
+        smokePool.spawn(positions.leftThrusterTop, { x: 0, y: 0 }, time);
+        thrusterCooldowns.leftThrusterTop = time;
+      }
+
+      if (time - thrusterCooldowns.rightThrusterBottom >= smokeCooldown) {
+        smokePool.spawn(positions.rightThrusterBottom, { x: 0, y: 0 }, time);
+        thrusterCooldowns.rightThrusterBottom = time;
+      }
+    }
 
     if (time - lastTimestamp < 100) {
       lastTimestamp = time;
-
-
     }
 
   }

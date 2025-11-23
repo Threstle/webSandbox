@@ -10,8 +10,9 @@ export interface SmokeParticle extends Destroyable, Updatable {
     mesh: THREE.Mesh;
     body: MATTER.Body;
     setPosition(x: number, y: number): void;
-    spawn(pos:Vec2, force?: Vec2): void;
+    spawn(pos:Vec2, force?: Vec2, currentTime?: number): void;
     isAlive: boolean;
+    remainingLife: number;
 };
 
 export function createSmokeParticle(
@@ -25,7 +26,7 @@ export function createSmokeParticle(
         mass: 0.1,
     });
 
-    const geometry = new THREE.PlaneGeometry(5, 5);
+    const geometry = new THREE.PlaneGeometry(2, 2);
 
     const material = new THREE.MeshBasicMaterial({ color: 0x0000FF, transparent: true });
     const mesh = new THREE.Mesh(
@@ -55,28 +56,28 @@ export function createSmokeParticle(
 
         updatePositionFromBody();
 
-        if (time - lastTimestamp > 100) {
-
-            console.log(material.opacity)
+        if (time - lastTimestamp > 10) {
             remainingLife -= 1;
-
             lastTimestamp = time;
         }
-        if (remainingLife > 0) {
-            remainingLife = 100;
+
+        if (remainingLife <= 0) {
+            remainingLife = 10;
             isAlive = false;
         }
 
     }
 
 
-    const spawn = (pos:Vec2, force: Vec2 = {x:0,y:0}) => {
-        let scale = Math.random()*5;
+    const spawn = (pos:Vec2, force: Vec2 = {x:0,y:0}, currentTime: number = 0) => {
+        let scale = Math.random()*10;
 
         mesh.scale.set(scale, scale, 1);
         MATTER.Body.scale(body, scale,scale);
 
         isAlive = true;
+        remainingLife = 100;
+        lastTimestamp = currentTime;
         setPosition(pos.x, pos.y);
         MATTER.Body.setVelocity(body, force);
     }
@@ -96,7 +97,8 @@ export function createSmokeParticle(
         update,
         destroy,
         setPosition,
-        isAlive
+        get isAlive() { return isAlive },
+        get remainingLife() { return remainingLife }
     });
 
 }
