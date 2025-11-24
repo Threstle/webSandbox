@@ -65,7 +65,7 @@ export async function createRocket(
   shape.setFromPoints(offsetVertices);
   const geometry = new THREE.ShapeGeometry(shape);
 
-  const material = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
+  const material = new THREE.MeshBasicMaterial({ color: 0xDDDDDD });
   const mesh = new THREE.Mesh(
     geometry,
     material

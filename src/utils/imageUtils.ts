@@ -20,6 +20,19 @@ export function getTextureAverageHeight(texture: Texture) {
 
 }
 
+export function rgbStringToHex(rgbString: string): number {
+    const match = rgbString.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    if (!match) {
+        throw new Error(`Invalid RGB string format: ${rgbString}`);
+    }
+
+    const r = parseInt(match[1]);
+    const g = parseInt(match[2]);
+    const b = parseInt(match[3]);
+
+    return (r << 16) | (g << 8) | b;
+}
+
 export async function getVerticesFromSVG(svg: string, precision: number = 100) {
 
     function toVertex(pathSVG: any, n: number) {

@@ -45,7 +45,7 @@ export async function createAsteroid(
     shape.setFromPoints(offsetVertices);
     const geometry = new THREE.ShapeGeometry(shape);
 
-    const material = new THREE.MeshBasicMaterial({ color: 0x00FF00});
+    const material = new THREE.MeshBasicMaterial({ color: 0xAAAAAA});
     const mesh = new THREE.Mesh(
         geometry,
         material

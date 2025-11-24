@@ -29,7 +29,7 @@ export function createSmokeParticle(
 
     const geometry = new THREE.PlaneGeometry(2, 2);
 
-    const material = new THREE.MeshBasicMaterial({ color: 0x0000FF, transparent: true });
+    const material = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true });
     const mesh = new THREE.Mesh(
         geometry,
         material
