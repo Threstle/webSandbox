@@ -12,12 +12,12 @@ export class SmokeParticlePool {
     this.maxPoolSize = maxPoolSize;
   }
 
-  spawn(pos: Vec2, force: Vec2 = { x: 0, y: 0 }, currentTime: number = 0): SmokeParticle {
+  spawn(pos: Vec2, force: Vec2 = { x: 0, y: 0 }, currentTime: number = 0, baseScale?:number, life?: number): SmokeParticle {
     // Try to find an inactive particle
     let particle = this.particles.find(p => !p.isAlive);
 
     if (particle) {
-      particle.spawn(pos, force, currentTime);
+      particle.spawn(pos, force, currentTime, baseScale, life);
       return particle;
     }
 
@@ -27,7 +27,7 @@ export class SmokeParticlePool {
       particle = this.particles.reduce((oldest, current) =>
         current.remainingLife < oldest.remainingLife ? current : oldest
       );
-      particle.spawn(pos, force, currentTime);
+      particle.spawn(pos, force, currentTime, baseScale, life);
       return particle;
     }
 
@@ -35,7 +35,7 @@ export class SmokeParticlePool {
     const newParticle = createSmokeParticle();
     this.scene.add(newParticle.mesh);
     this.particles.push(newParticle);
-    newParticle.spawn(pos, force, currentTime);
+    newParticle.spawn(pos, force, currentTime, baseScale, life);
 
     return newParticle;
   }

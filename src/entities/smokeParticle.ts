@@ -10,7 +10,7 @@ export interface SmokeParticle extends Destroyable, Updatable {
     mesh: THREE.Mesh;
     body: MATTER.Body;
     setPosition(x: number, y: number): void;
-    spawn(pos:Vec2, force?: Vec2, currentTime?: number): void;
+    spawn(pos:Vec2, force?: Vec2, currentTime?: number, baseScale?: number, life?: number): void;
     isAlive: boolean;
     remainingLife: number;
 };
@@ -18,7 +18,8 @@ export interface SmokeParticle extends Destroyable, Updatable {
 export function createSmokeParticle(
 ): SmokeParticle {
 
-    let remainingLife = 100;
+    let startingLife = 0;
+    let remainingLife= 0;
     let isAlive = false;
 
     const body = MATTER.Bodies.rectangle(0, 0, 5, 5, {
@@ -52,7 +53,7 @@ export function createSmokeParticle(
 
         if (!isAlive) return;
 
-        material.opacity = remainingLife / 100;
+        material.opacity = remainingLife / startingLife;
 
         updatePositionFromBody();
 
@@ -69,14 +70,15 @@ export function createSmokeParticle(
     }
 
 
-    const spawn = (pos:Vec2, force: Vec2 = {x:0,y:0}, currentTime: number = 0) => {
-        let scale = Math.random()*10;
+    const spawn = (pos:Vec2, force: Vec2 = {x:0,y:0}, currentTime: number = 0, baseScale: number = 10, life: number = 100) => {
+        let scale = baseScale * Math.random();
 
         mesh.scale.set(scale, scale, 1);
         MATTER.Body.scale(body, scale,scale);
 
         isAlive = true;
-        remainingLife = 100;
+        startingLife = life;
+        remainingLife = startingLife;
         lastTimestamp = currentTime;
         setPosition(pos.x, pos.y);
         MATTER.Body.setVelocity(body, force);
