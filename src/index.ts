@@ -56,8 +56,23 @@ async function init(
     await getVerticesFromSVG(require('./assets/ast4.svg')),
     await getVerticesFromSVG(require('./assets/ast5.svg')),
     await getVerticesFromSVG(require('./assets/ast6.svg')),
+    await getVerticesFromSVG(require('./assets/ast8.svg')),
+    await getVerticesFromSVG(require('./assets/ast9.svg')),
+    await getVerticesFromSVG(require('./assets/ast10.svg')),
+    await getVerticesFromSVG(require('./assets/ast11.svg')),
+    await getVerticesFromSVG(require('./assets/ast12.svg')),
+    await getVerticesFromSVG(require('./assets/ast13.svg')),
+    await getVerticesFromSVG(require('./assets/ast14.svg')),
+    await getVerticesFromSVG(require('./assets/ast15.svg')),
+    await getVerticesFromSVG(require('./assets/ast16.svg')),
+    await getVerticesFromSVG(require('./assets/ast17.svg')),
+    await getVerticesFromSVG(require('./assets/ast18.svg')),
+    await getVerticesFromSVG(require('./assets/ast19.svg')),
+    await getVerticesFromSVG(require('./assets/ast20.svg')),
+    await getVerticesFromSVG(require('./assets/ast21.svg')),
+    await getVerticesFromSVG(require('./assets/ast22.svg')),
+    await getVerticesFromSVG(require('./assets/ast23.svg')),
   ];
-
 
   // Init some stuff
   const startTime = new Date().getTime();
