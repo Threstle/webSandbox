@@ -21,6 +21,7 @@ import { Asteroid, createAsteroid } from "./entities/asteroid";
 import { getVerticesFromSVG } from "./utils/imageUtils";
 import { SmokeParticlePool } from "./utils/smokeParticlePool";
 import { setupInputHandlers } from "./utils/inputManager";
+import { distance } from "./utils/2dUtils";
 
 function createRenderer(
   canvas: HTMLCanvasElement,
@@ -61,7 +62,7 @@ async function init(
     await getVerticesFromSVG(require('./assets/ast10.svg')),
     await getVerticesFromSVG(require('./assets/ast11.svg')),
     await getVerticesFromSVG(require('./assets/ast12.svg')),
-    await getVerticesFromSVG(require('./assets/ast13.svg')),
+    // await getVerticesFromSVG(require('./assets/ast13.svg')),
     await getVerticesFromSVG(require('./assets/ast14.svg')),
     await getVerticesFromSVG(require('./assets/ast15.svg')),
     await getVerticesFromSVG(require('./assets/ast16.svg')),
@@ -76,14 +77,13 @@ async function init(
 
   // Init some stuff
   const startTime = new Date().getTime();
-  const testMap = await textureLoader.loadAsync(oceanFloorTexture);
 
   // Get canvases from DOM
   const mainCanvas = document.getElementById("main") as HTMLCanvasElement;
   const reliefCanvas = document.getElementById("relief") as HTMLCanvasElement;
 
   const composer = createRenderer(mainCanvas, UI.main.cameraClear);
-  const reliefComposer = createRenderer(reliefCanvas, 0xFFFFFF, {
+  const reliefComposer = createRenderer(reliefCanvas, 0x000000, {
     width: UI.side.size,
     height: UI.side.size,
   });
@@ -116,7 +116,7 @@ async function init(
   const scene = new THREE.Scene();
 
   // Create the cameras
-  const mainCamera = new THREE.OrthographicCamera(window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, UI.main.cameraNear, UI.main.cameraFar);
+  const mainCamera = new THREE.OrthographicCamera(window.innerWidth / - 1, window.innerWidth / 1, window.innerHeight / 1, window.innerHeight / - 1, UI.main.cameraNear, UI.main.cameraFar);
 
   const sideCamera = new THREE.PerspectiveCamera();
   sideCamera.position.set(UI.side.distance, UI.side.distance, UI.side.cameraDistance);
@@ -139,17 +139,72 @@ async function init(
   MATTER.Composite.add(physicsEngine.world, [rocket.body]);
   mainCamera.position.set(rocket.mesh.position.x, rocket.mesh.position.y, UI.main.cameraDistance);
 
-  const floor = createFloor(testMap, {
-    size: MAP.size
-  });
-  floor.position.set(MAP.size / 2, MAP.size / 2, 0);
-  scene.add(floor);
 
 
   const asteroids: Asteroid[] = [];
-  const asteroidScales = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 1, 2, 3, 3, 4, 5];
+  const asteroidScales = [0.5, 0.5, 0.5, 0.5, 0.5, 3, 4, 3, 1, 1, 2, 3, 3, 4, 5, 15];
 
-  for (let i = 0; i < 100; i++) {
+  const safeZoneRadius = 300; // Radius around spawn point (MAP.startingPosX, MAP.startingPosY)
+  const safeZoneSpawnChance = 0.3; // Only 30% of asteroids spawn in safe zone
+  const baseScale = 0.1;
+  const startPos = { x: MAP.startingPosX, y: MAP.startingPosY };
+
+
+  // for (let i = 0; i < 100; i++) {
+  //   let posX, posY;
+  //   let randomScale = asteroidScales[Math.floor(Math.random() * asteroidScales.length)];
+  //   let scale = baseScale * randomScale;
+
+  //   // Generate random position
+  //   const asteroidPos = {x:Math.random() * MAP.size,y:Math.random() * MAP.size}
+  //   const distanceFromStart = distance(startPos,asteroidPos)
+
+  //   const asteroid = await createAsteroid(
+  //     asteroidVertices[Math.floor(Math.random() * asteroidVertices.length)],
+  //     scale
+  //   );
+  //   // asteroid.mesh.geometry.computeBoundingSphere()
+  //   // const asteroidRadius = asteroid.mesh.geometry.boundingSphere.radius;
+  //   // console.log(asteroidRadius)
+
+
+  //   // console.log(asteroid.mesh.geometry.boundingSphere)
+
+  //   // // Calculate asteroid radius based on its scale
+  //   // const asteroidRadius = averageAsteroidSize * scale;
+
+  //   // // Check if asteroid overlaps with safe zone (distance to center minus asteroid size)
+  //   // const effectiveDistance = distanceFromStart - asteroidRadius;
+  //   const effectiveDistance = distanceFromStart;
+
+  //   let canBeAdded = true;
+  //   // If asteroid overlaps with safe zone
+  //   // if (effectiveDistance < safeZoneRadius) {
+  //   //   // // Skip this asteroid if random chance fails (reduces density)
+  //   //   if (Math.random() < safeZoneSpawnChance) {
+  //   //     canBeAdded = false;
+  //   //   }
+
+
+  //   //   // // Only allow small asteroids in safe zone (max scale 1)
+  //   //   // const smallScales = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 1];
+  //   //   // randomScale = smallScales[Math.floor(Math.random() * smallScales.length)];
+  //   //   // scale = baseScale * randomScale;
+
+
+  //   // }
+
+
+  //   // if(canBeAdded){
+  //     scene.add(asteroid.mesh);
+  //     asteroids.push(asteroid);
+  //     asteroid.setPosition(posX, posY);
+  //     MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
+  //   // }
+  // }
+
+
+  for (let i = 0; i < 1000; i++) {
     const randomScale = asteroidScales[Math.floor(Math.random() * asteroidScales.length)];
     const baseScale = 0.1;
     const scale = baseScale * randomScale;
@@ -157,19 +212,32 @@ async function init(
       asteroidVertices[Math.floor(Math.random() * asteroidVertices.length)],
       scale
     );
-    asteroid.setPosition(Math.random() * MAP.size, Math.random() * MAP.size);
-    scene.add(asteroid.mesh);
-    asteroids.push(asteroid);
-    MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
+
+    const asteroidPos = { x: Math.random() * MAP.size, y: Math.random() * MAP.size }
+
+
+    const distanceFromStart = distance(startPos, asteroidPos) - asteroid.radius *scale;
+
+    const spawnAsteroid = () => {
+      scene.add(asteroid.mesh);
+      asteroid.setPosition(asteroidPos.x, asteroidPos.y);
+
+      asteroids.push(asteroid);
+      MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
+    }
+
+    if (distanceFromStart > safeZoneRadius) {
+      spawnAsteroid();
+    }
+    else{
+      console.log('discarded')
+    }
+
+
   }
 
   const smokePool = new SmokeParticlePool(scene);
 
-
-  const reliefMap = await createReliefMap(testMap);
-  reliefMap.position.set(UI.side.distance, UI.side.distance, 0);
-  reliefMap.rotation.x = -Math.PI / 4;
-  scene.add(reliefMap);
 
   let requestId = 0;
 
@@ -181,7 +249,8 @@ async function init(
     rightThrusterTop: 0,
     leftThrusterBottom: 0,
     leftThrusterTop: 0,
-    rightThrusterBottom: 0
+    rightThrusterBottom: 0,
+    breakThruster: 0
   };
   const smokeCooldown = 50; // milliseconds between smoke spawns per thruster
 
@@ -202,7 +271,6 @@ async function init(
     if (GENERAL.realTimeRender) {
       composer.render();
     }
-    reliefMap.update(time, rocketPos, radarRadius, rocket.mesh.rotation.z);
     asciiFilter.update(time, UI.radius / Math.min(window.innerHeight, window.innerWidth), rocket.viewRes);
     stats.update();
     reliefComposer.render();
@@ -214,7 +282,7 @@ async function init(
     // Main thruster smoke
     if (rocket.isAccelerating && time - thrusterCooldowns.mainThruster >= smokeCooldown) {
       const spawnPos = rocket.getPartPositions().mainThruster;
-      smokePool.spawn(spawnPos, { x: 0, y: 0 }, time);
+      smokePool.spawn(spawnPos, { x: 0, y: 0 }, time, 20, 400);
       thrusterCooldowns.mainThruster = time;
     }
 
@@ -246,6 +314,18 @@ async function init(
         smokePool.spawn(positions.rightThrusterBottom, { x: 0, y: 0 }, time);
         thrusterCooldowns.rightThrusterBottom = time;
       }
+    }
+
+    // Break thruster smoke
+    if (rocket.isBreaking && time - thrusterCooldowns.breakThruster >= smokeCooldown) {
+
+      const parts = rocket.getPartPositions();
+      Object.values(parts).forEach((thrusterPos)=>{
+        smokePool.spawn(thrusterPos, { x: 0, y: 0 }, time, rocket.body.speed / 100, 400);
+        
+      })
+
+      thrusterCooldowns.breakThruster = time;
     }
 
     if (time - lastTimestamp < 100) {

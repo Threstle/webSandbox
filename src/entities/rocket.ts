@@ -15,6 +15,7 @@ export interface Rocket extends Destroyable, Updatable {
   mesh: THREE.Mesh;
   getPartPositions(): {
     mainThruster: Vec2;
+    breakThruster: Vec2;
     leftThrusterTop: Vec2;
     leftThrusterBottom: Vec2;
     rightThrusterTop: Vec2;
@@ -109,6 +110,7 @@ export async function createRocket(
 
     return {
       mainThruster: rotate({ x: mesh.position.x, y: mesh.position.y - height / 2 }),
+      breakThruster: rotate({ x: mesh.position.x, y: mesh.position.y + height / 2 }),
       rightThrusterTop: rotate({ x:right, y: mesh.position.y + height / 9 }),
       leftThrusterBottom: rotate({ x: left, y: mesh.position.y - height / 9 }),
       leftThrusterTop: rotate({ x:left, y: mesh.position.y + height / 9 }),

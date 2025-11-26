@@ -11,11 +11,12 @@ export interface Asteroid extends Destroyable, Updatable {
     mesh: THREE.Mesh;
     setPosition(x: number, y: number): void;
     body: MATTER.Body;
+    radius:number
 };
 
 export async function createAsteroid(
     vertices: THREE.Vector2[],
-    scale: number,
+    scale: number = 1,
 ): Promise<Asteroid> {
 
 
@@ -45,18 +46,16 @@ export async function createAsteroid(
     shape.setFromPoints(offsetVertices);
     const geometry = new THREE.ShapeGeometry(shape);
 
-    const material = new THREE.MeshBasicMaterial({ color: 0xAAAAAA});
+    const material = new THREE.MeshBasicMaterial({ color: 0xAAAAAA });
     const mesh = new THREE.Mesh(
         geometry,
         material
     );
 
-    // const meshDebug = new THREE.Mesh(
-    //     new THREE.BoxGeometry(10, 10, 1),
-    //     new THREE.MeshBasicMaterial({ color: 0xFF0000, side: THREE.DoubleSide })
-    // );
+    const box = new THREE.Box2().setFromPoints(offsetVertices);
+    const radius = box.getSize(new THREE.Vector2()).length() * 0.5;
 
-    // mesh.add(meshDebug);
+    console.log(radius)
 
     MATTER.Body.setAngularVelocity(body, Math.random() * 2);
     MATTER.Body.setVelocity(body, new THREE.Vector2(Math.random() * 2, Math.random() * 2));
@@ -90,6 +89,7 @@ export async function createAsteroid(
         update,
         destroy,
         setPosition,
+        radius
     });
 
 }
