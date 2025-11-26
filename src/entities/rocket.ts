@@ -8,8 +8,8 @@ import { setLabelColor, setLabelText } from '../utils/uiUtils';
 import { ROCKET } from '../conf';
 import { getVerticesFromSVG } from '../utils/imageUtils';
 import { getBoundsFromVertices } from '../utils/3dUtils';
-import { createSmokeParticle } from './smokeParticle';
 import { rotateAround } from '../utils/2dUtils';
+import { SmokeParticlePool } from '../utils/smokeParticlePool';
 
 export interface Rocket extends Destroyable, Updatable {
   mesh: THREE.Mesh;
@@ -33,6 +33,7 @@ export interface Rocket extends Destroyable, Updatable {
 
 
 export async function createRocket(
+  scene: THREE.Scene
 ): Promise<Rocket> {
 
   let isAccelerating = false;
@@ -41,6 +42,20 @@ export async function createRocket(
   let isBreaking = false;
   let fuel = 1000;
   let viewRes = 0
+
+  // Initialize smoke particle pool
+  const smokePool = new SmokeParticlePool(scene);
+
+  // Individual cooldown timers for each thruster
+  const thrusterCooldowns = {
+    mainThruster: 0,
+    rightThrusterTop: 0,
+    leftThrusterBottom: 0,
+    leftThrusterTop: 0,
+    rightThrusterBottom: 0,
+    breakThruster: 0
+  };
+  const smokeCooldown = 50; // milliseconds between smoke spawns per thruster
 
 
   const rocketVertice = await getVerticesFromSVG(require('../assets/rocket.svg'), 10);
@@ -141,21 +156,67 @@ export async function createRocket(
       ));
       setLabelColor('accelerateLabel', 'red');
 
+      // Main thruster smoke
+      if (time - thrusterCooldowns.mainThruster >= smokeCooldown) {
+        const spawnPos = getPartPositions().mainThruster;
+        smokePool.spawn(spawnPos, { x: 0, y: 0 }, time, 20, 400);
+        thrusterCooldowns.mainThruster = time;
+      }
     }
+
     if (isRotatingLeft) {
       MATTER.Body.setAngularVelocity(body, ROCKET.angularSpeed);
-
       setLabelColor('turnLeftLabel', 'red');
+
+      // Rotation left thrusters
+      const positions = getPartPositions();
+
+      if (time - thrusterCooldowns.rightThrusterTop >= smokeCooldown) {
+        smokePool.spawn(positions.rightThrusterTop, { x: 0, y: 0 }, time);
+        thrusterCooldowns.rightThrusterTop = time;
+      }
+
+      if (time - thrusterCooldowns.leftThrusterBottom >= smokeCooldown) {
+        smokePool.spawn(positions.leftThrusterBottom, { x: 0, y: 0 }, time);
+        thrusterCooldowns.leftThrusterBottom = time;
+      }
     }
+
     if (isRotatingRight) {
       MATTER.Body.setAngularVelocity(body, -ROCKET.angularSpeed);
       setLabelColor('turnRightLabel', 'red');
+
+      // Rotation right thrusters
+      const positions = getPartPositions();
+
+      if (time - thrusterCooldowns.leftThrusterTop >= smokeCooldown) {
+        smokePool.spawn(positions.leftThrusterTop, { x: 0, y: 0 }, time);
+        thrusterCooldowns.leftThrusterTop = time;
+      }
+
+      if (time - thrusterCooldowns.rightThrusterBottom >= smokeCooldown) {
+        smokePool.spawn(positions.rightThrusterBottom, { x: 0, y: 0 }, time);
+        thrusterCooldowns.rightThrusterBottom = time;
+      }
     }
+
     if (isBreaking) {
       setLabelColor('breakLabel', 'red');
       MATTER.Body.setSpeed(body, body.speed - ROCKET.breakForce);
       MATTER.Body.setAngularSpeed(body, body.angularSpeed - ROCKET.angularBreakForce);
+
+      // Break thruster smoke
+      if (time - thrusterCooldowns.breakThruster >= smokeCooldown) {
+        const parts = getPartPositions();
+        Object.values(parts).forEach((thrusterPos) => {
+          smokePool.spawn(thrusterPos, { x: 0, y: 0 }, time, body.speed / 100, 400);
+        });
+        thrusterCooldowns.breakThruster = time;
+      }
     }
+
+    // Update smoke pool
+    smokePool.update(time);
 
     if (time - lastTimestamp > 100) {
 

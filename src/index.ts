@@ -19,7 +19,6 @@ const oceanFloorTexture = require('../src/assets/space2.png');
 import './style.css';
 import { Asteroid, createAsteroid } from "./entities/asteroid";
 import { getVerticesFromSVG } from "./utils/imageUtils";
-import { SmokeParticlePool } from "./utils/smokeParticlePool";
 import { setupInputHandlers } from "./utils/inputManager";
 import { distance } from "./utils/2dUtils";
 
@@ -132,7 +131,7 @@ async function init(
 
   reliefComposer.addPass(sideRenderPass);
 
-  const rocket = await createRocket();
+  const rocket = await createRocket(scene);
   rocket.setPosition(MAP.size / 2, MAP.size / 2);
 
   scene.add(rocket.mesh);
@@ -148,60 +147,6 @@ async function init(
   const safeZoneSpawnChance = 0.3; // Only 30% of asteroids spawn in safe zone
   const baseScale = 0.1;
   const startPos = { x: MAP.startingPosX, y: MAP.startingPosY };
-
-
-  // for (let i = 0; i < 100; i++) {
-  //   let posX, posY;
-  //   let randomScale = asteroidScales[Math.floor(Math.random() * asteroidScales.length)];
-  //   let scale = baseScale * randomScale;
-
-  //   // Generate random position
-  //   const asteroidPos = {x:Math.random() * MAP.size,y:Math.random() * MAP.size}
-  //   const distanceFromStart = distance(startPos,asteroidPos)
-
-  //   const asteroid = await createAsteroid(
-  //     asteroidVertices[Math.floor(Math.random() * asteroidVertices.length)],
-  //     scale
-  //   );
-  //   // asteroid.mesh.geometry.computeBoundingSphere()
-  //   // const asteroidRadius = asteroid.mesh.geometry.boundingSphere.radius;
-  //   // console.log(asteroidRadius)
-
-
-  //   // console.log(asteroid.mesh.geometry.boundingSphere)
-
-  //   // // Calculate asteroid radius based on its scale
-  //   // const asteroidRadius = averageAsteroidSize * scale;
-
-  //   // // Check if asteroid overlaps with safe zone (distance to center minus asteroid size)
-  //   // const effectiveDistance = distanceFromStart - asteroidRadius;
-  //   const effectiveDistance = distanceFromStart;
-
-  //   let canBeAdded = true;
-  //   // If asteroid overlaps with safe zone
-  //   // if (effectiveDistance < safeZoneRadius) {
-  //   //   // // Skip this asteroid if random chance fails (reduces density)
-  //   //   if (Math.random() < safeZoneSpawnChance) {
-  //   //     canBeAdded = false;
-  //   //   }
-
-
-  //   //   // // Only allow small asteroids in safe zone (max scale 1)
-  //   //   // const smallScales = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 1];
-  //   //   // randomScale = smallScales[Math.floor(Math.random() * smallScales.length)];
-  //   //   // scale = baseScale * randomScale;
-
-
-  //   // }
-
-
-  //   // if(canBeAdded){
-  //     scene.add(asteroid.mesh);
-  //     asteroids.push(asteroid);
-  //     asteroid.setPosition(posX, posY);
-  //     MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
-  //   // }
-  // }
 
 
   for (let i = 0; i < 1000; i++) {
@@ -236,23 +181,9 @@ async function init(
 
   }
 
-  const smokePool = new SmokeParticlePool(scene);
-
-
   let requestId = 0;
 
   let lastTimestamp = 0;
-
-  // Individual cooldown timers for each thruster
-  const thrusterCooldowns = {
-    mainThruster: 0,
-    rightThrusterTop: 0,
-    leftThrusterBottom: 0,
-    leftThrusterTop: 0,
-    rightThrusterBottom: 0,
-    breakThruster: 0
-  };
-  const smokeCooldown = 50; // milliseconds between smoke spawns per thruster
 
   const clock = new THREE.Clock();
   function animate() {
@@ -266,7 +197,6 @@ async function init(
     const radarRadius = getNormalizedDistance(UI.radius);
 
     rocket.update(time);
-    smokePool.update(time);
     asteroids.forEach(asteroid => asteroid.update(time));
     if (GENERAL.realTimeRender) {
       composer.render();
@@ -278,55 +208,6 @@ async function init(
     mainCamera.position.lerp(new THREE.Vector3(rocket.mesh.position.x, rocket.mesh.position.y, mainCamera.position.z), 0.1);
 
     requestId = requestAnimationFrame(animate);
-
-    // Main thruster smoke
-    if (rocket.isAccelerating && time - thrusterCooldowns.mainThruster >= smokeCooldown) {
-      const spawnPos = rocket.getPartPositions().mainThruster;
-      smokePool.spawn(spawnPos, { x: 0, y: 0 }, time, 20, 400);
-      thrusterCooldowns.mainThruster = time;
-    }
-
-    // Rotation left thrusters
-    if (rocket.isRotatingLeft) {
-      const positions = rocket.getPartPositions();
-
-      if (time - thrusterCooldowns.rightThrusterTop >= smokeCooldown) {
-        smokePool.spawn(positions.rightThrusterTop, { x: 0, y: 0 }, time);
-        thrusterCooldowns.rightThrusterTop = time;
-      }
-
-      if (time - thrusterCooldowns.leftThrusterBottom >= smokeCooldown) {
-        smokePool.spawn(positions.leftThrusterBottom, { x: 0, y: 0 }, time);
-        thrusterCooldowns.leftThrusterBottom = time;
-      }
-    }
-
-    // Rotation right thrusters
-    if (rocket.isRotatingRight) {
-      const positions = rocket.getPartPositions();
-
-      if (time - thrusterCooldowns.leftThrusterTop >= smokeCooldown) {
-        smokePool.spawn(positions.leftThrusterTop, { x: 0, y: 0 }, time);
-        thrusterCooldowns.leftThrusterTop = time;
-      }
-
-      if (time - thrusterCooldowns.rightThrusterBottom >= smokeCooldown) {
-        smokePool.spawn(positions.rightThrusterBottom, { x: 0, y: 0 }, time);
-        thrusterCooldowns.rightThrusterBottom = time;
-      }
-    }
-
-    // Break thruster smoke
-    if (rocket.isBreaking && time - thrusterCooldowns.breakThruster >= smokeCooldown) {
-
-      const parts = rocket.getPartPositions();
-      Object.values(parts).forEach((thrusterPos)=>{
-        smokePool.spawn(thrusterPos, { x: 0, y: 0 }, time, rocket.body.speed / 100, 400);
-        
-      })
-
-      thrusterCooldowns.breakThruster = time;
-    }
 
     if (time - lastTimestamp < 100) {
       lastTimestamp = time;
