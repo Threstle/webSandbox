@@ -8,13 +8,10 @@ import { container } from "./utils/autoinject";
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { createRocket } from "./entities/rocket";
-import { createFloor } from "./entities/floor";
 import { createAsciiFilter } from "./effects/asciiFilter";
-import { createReliefMap } from "./entities/reliefMap";
 import { getNormalizedDistance, getNormalizedPosition, to2D } from "./utils/3dUtils";
 import { ASCII, GENERAL, MAP, UI } from "./conf";
 const asciiTexture = require('../ascii.png');
-const oceanFloorTexture = require('../src/assets/space2.png');
 
 import './style.css';
 import { Asteroid, createAsteroid } from "./entities/asteroid";
@@ -138,6 +135,85 @@ async function init(
   MATTER.Composite.add(physicsEngine.world, [rocket.body]);
   mainCamera.position.set(rocket.mesh.position.x, rocket.mesh.position.y, UI.main.cameraDistance);
 
+  // Setup collision detection for rocket damage
+  MATTER.Events.on(physicsEngine, 'collisionStart', (event) => {
+
+
+    event.pairs.forEach((pair) => {
+
+      // Check if rocket is involved in collision
+      const isRocketInvolved = pair.bodyA.label === rocket.body.label || pair.bodyB.label === rocket.body.label;
+
+
+      if (isRocketInvolved) {
+
+        
+        // Get the other body (the one that hit the rocket)
+        const rocketBody = pair.bodyA.label === rocket.body.label ? pair.bodyA : pair.bodyB;
+        const otherBody = pair.bodyA.label === rocket.body.label ? pair.bodyB : pair.bodyA;
+        // @ts-ignore
+        const otherBodyVelocity = bodiesVelocities[otherBody.label];
+        // @ts-ignore
+        const rocketVelocity = bodiesVelocities[rocketBody.label];
+
+        // Calculate relative velocity (impact speed)
+        const relativeVelocity = MATTER.Vector.sub(otherBodyVelocity, rocketVelocity);
+        const impactSpeed = MATTER.Vector.magnitude(relativeVelocity);
+
+        // Calculate damage based on mass and impact speed
+        const minDamageMass = 20;
+        const maxDamageMass = 100;
+        const minDamageSpeed = 1; // Minimum speed to cause damage
+        const maxDamageSpeed = 10; // Speed for maximum damage multiplier
+
+        console.log('Mass:', otherBody.mass, 'Speed:', impactSpeed);
+
+        if (otherBody.mass >= minDamageMass && impactSpeed >= minDamageSpeed) {
+          // Mass damage component (0 to 1 scale)
+          const massRatio = Math.min(1, (otherBody.mass - minDamageMass) / (maxDamageMass - minDamageMass));
+
+          // Speed damage multiplier (0.2 to 1 scale)
+          const speedMultiplier = Math.min(1, Math.max(0.2, (impactSpeed - minDamageSpeed) / (maxDamageSpeed - minDamageSpeed)));
+
+          // Combined damage: base damage (1-10) * speed multiplier
+          const baseDamage = Math.floor(massRatio * 10) + 1;
+          const damage = Math.min(10, Math.max(1, Math.floor(baseDamage * speedMultiplier)));
+
+          rocket.damage(damage);
+        }
+      }
+    });
+  });
+
+  MATTER.Events.on(physicsEngine, "collisionStart", event => {
+
+
+    for (const pair of event.pairs) {
+      const a = pair.bodyA;
+      const b = pair.bodyB;
+      const isRocketInvolved = a.label === rocket.body.label || b.label === rocket.body.label;
+
+      if (isRocketInvolved) {
+
+        // @ts-ignore
+        const rocketVelocity = bodiesVelocities[rocket.body.label];
+        // @ts-ignore
+        const otherBodyVelocity = bodiesVelocities[a.label];
+
+        // Relative velocity vector
+        const rvx = b.velocity.x - a.velocity.x;
+        const rvy = b.velocity.y - a.velocity.y;
+        // Impact speed (scalar)
+        const impactSpeed = Math.sqrt(rvx * rvx + rvy * rvy);
+        console.log("Impact speed:", rocketVelocity, otherBodyVelocity);
+
+      }
+
+
+    }
+  });
+
+
 
 
   const asteroids: Asteroid[] = [];
@@ -149,7 +225,7 @@ async function init(
   const startPos = { x: MAP.startingPosX, y: MAP.startingPosY };
 
 
-  for (let i = 0; i < 1000; i++) {
+  for (let i = 0; i < 300; i++) {
     const randomScale = asteroidScales[Math.floor(Math.random() * asteroidScales.length)];
     const baseScale = 0.1;
     const scale = baseScale * randomScale;
@@ -161,7 +237,7 @@ async function init(
     const asteroidPos = { x: Math.random() * MAP.size, y: Math.random() * MAP.size }
 
 
-    const distanceFromStart = distance(startPos, asteroidPos) - asteroid.radius *scale;
+    const distanceFromStart = distance(startPos, asteroidPos) - asteroid.radius * scale;
 
     const spawnAsteroid = () => {
       scene.add(asteroid.mesh);
@@ -174,24 +250,45 @@ async function init(
     if (distanceFromStart > safeZoneRadius) {
       spawnAsteroid();
     }
-    else{
-      console.log('discarded')
-    }
-
 
   }
+
+  const bodiesVelocities = {};
+
+  MATTER.Events.on(physicsEngine, 'beforeUpdate', () => {
+
+    physicsEngine.world.bodies.forEach(body => {
+      //@ts-ignore
+      bodiesVelocities[body.label] = body.velocity;
+    });
+
+  });
 
   let requestId = 0;
 
   let lastTimestamp = 0;
 
+  const fixedStep = 1000 / 60;
   const clock = new THREE.Clock();
+  let accumulator = 0;
+  let lastTime = new Date().getTime();
   function animate() {
 
-    const time = new Date().getTime() - startTime;
+    const now = new Date().getTime();
 
+    const time = now - startTime;
+
+    const frameTime = now - lastTime;
+
+    lastTime = now;
+
+    accumulator += frameTime;
+
+    // while (accumulator >= fixedStep) {
     MATTER.Engine.update(physicsEngine, clock.getDelta());
     MATTER.Render.lookAt(physicRenderer, rocket.body, MATTER.Vector.create(200, 200));
+    // accumulator -= fixedStep;
+    // }
 
     const rocketPos = getNormalizedPosition(rocket.mesh.position);
     const radarRadius = getNormalizedDistance(UI.radius);

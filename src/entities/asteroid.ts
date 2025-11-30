@@ -1,6 +1,7 @@
 import "pathseg";
 import "poly-decomp";
 import * as MATTER from 'matter-js';
+import { v4 as uuidv4 } from 'uuid';
 import * as THREE from 'three';
 import { completeAssign } from '../utils/functionalUtils';
 import { Destroyable, Updatable, Vec2, Vec3 } from './../types';
@@ -25,8 +26,12 @@ export async function createAsteroid(
     });
 
     const body = MATTER.Bodies.fromVertices(0, 0, [scaledVertices], {
-        friction: 0,
-        mass: 100 * scale,
+    restitution: 0,
+    friction: 0.003*scale,
+    frictionStatic: 1,
+    frictionAir: 0.05,
+        mass: 1000 * scale,
+        label: `asteroid-${uuidv4()}`,
     });
 
     const ogBounds = getBoundsFromVertices(scaledVertices);
@@ -54,8 +59,6 @@ export async function createAsteroid(
 
     const box = new THREE.Box2().setFromPoints(offsetVertices);
     const radius = box.getSize(new THREE.Vector2()).length() * 0.5;
-
-    console.log(radius)
 
     MATTER.Body.setAngularVelocity(body, Math.random() * 2);
     MATTER.Body.setVelocity(body, new THREE.Vector2(Math.random() * 2, Math.random() * 2));

@@ -28,6 +28,8 @@ export interface Rocket extends Destroyable, Updatable {
   isRotatingLeft: boolean;
   isRotatingRight: boolean;
   isBreaking: boolean;
+  life: number;
+  damage(amount: number): void;
 };
 
 
@@ -41,7 +43,11 @@ export async function createRocket(
   let isRotatingRight = false;
   let isBreaking = false;
   let fuel = 1000;
-  let viewRes = 0
+  let viewRes = 0;
+  let life = 100;
+  let damageFlashEndTime = 0;
+  const normalColor = 0xDDDDDD;
+  const damageColor = 0xFF0000;
 
   // Initialize smoke particle pool
   const smokePool = new SmokeParticlePool(scene);
@@ -63,7 +69,9 @@ export async function createRocket(
   const body = MATTER.Bodies.fromVertices(0, 0, [rocketVertice], {
     friction: 0,
     mass: 10,
+    label: 'rocket',
   });
+  
 
   const ogBounds = getBoundsFromVertices(rocketVertice);
   const bodyBounds = body.bounds;
@@ -101,6 +109,14 @@ export async function createRocket(
     if (isAccelerating) { fuel -= 2; }
     if (isBreaking) { fuel -= 3; }
     fuel -= viewRes / 50;
+  }
+
+    const damage = (amount: number) => {
+    life = Math.max(0, life - amount);
+
+    // Flash red for 1 second
+    (material as THREE.MeshBasicMaterial).color.setHex(damageColor);
+    damageFlashEndTime = performance.now() + 100;
   }
 
   const updatePositionFromBody = () => {
@@ -144,6 +160,12 @@ export async function createRocket(
     const forward = getRotatedForwardVector(mesh.rotation.z);
 
     updatePositionFromBody();
+
+    // Handle damage flash effect
+    if (damageFlashEndTime > 0 && time >= damageFlashEndTime) {
+      (material as THREE.MeshBasicMaterial).color.setHex(normalColor);
+      damageFlashEndTime = 0;
+    }
 
     ['accelerateLabel', 'turnLeftLabel', 'turnRightLabel', 'breakLabel'].forEach(id => {
       setLabelColor(id, '');
@@ -226,6 +248,7 @@ export async function createRocket(
     }
 
     setLabelText('fuelLabel', Math.trunc(fuel).toString());
+    setLabelText('lifeLabel', Math.trunc(life).toString());
 
   }
 
@@ -239,7 +262,9 @@ export async function createRocket(
     getPartPositions,
     update,
     destroy,
+    damage,
     get viewRes() { return viewRes },
+    get life() { return life },
     get isAccelerating() { return isAccelerating },
     set isAccelerating(value: boolean) { isAccelerating = value },
     get isRotatingLeft() { return isRotatingLeft },
