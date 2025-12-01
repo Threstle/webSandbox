@@ -19,6 +19,8 @@ import { Loot, createLoot } from "./entities/loot";
 import { getVerticesFromSVG } from "./utils/imageUtils";
 import { setupInputHandlers } from "./utils/inputManager";
 import { distance } from "./utils/2dUtils";
+import { LootManager } from "./utils/lootManager";
+import { setLabelText } from "./utils/uiUtils";
 
 function createRenderer(
   canvas: HTMLCanvasElement,
@@ -136,6 +138,9 @@ async function init(
   MATTER.Composite.add(physicsEngine.world, [rocket.body]);
   mainCamera.position.set(rocket.mesh.position.x, rocket.mesh.position.y, UI.main.cameraDistance);
 
+  // Initialize loot manager
+  const lootManager = new LootManager();
+
   // Setup GUI controls for rocket movement
   const rocketFolder = gui.addFolder('Rocket');
   rocketFolder.add(ROCKET, 'speed', 0, 10000).name('Speed');
@@ -153,7 +158,7 @@ async function init(
   collisionFolder.add(COLLISION, 'maxDamage', 1, 100).name('Max Damage');
   collisionFolder.close();
 
-  // Setup collision detection for rocket damage
+  // Setup collision detection for rocket damage and loot collection
   MATTER.Events.on(physicsEngine, 'collisionStart', (event) => {
 
 
@@ -165,10 +170,34 @@ async function init(
 
       if (isRocketInvolved) {
 
-        
+
         // Get the other body (the one that hit the rocket)
         const rocketBody = pair.bodyA.label === rocket.body.label ? pair.bodyA : pair.bodyB;
         const otherBody = pair.bodyA.label === rocket.body.label ? pair.bodyB : pair.bodyA;
+
+        // Check if it's a loot collision
+        if (otherBody.label.startsWith('loot-')) {
+          // Find and remove the loot
+          const lootIndex = loots.findIndex(loot => loot.body.label === otherBody.label);
+          if (lootIndex > -1) {
+            const loot = loots[lootIndex];
+
+            // Remove from scene and physics world
+            scene.remove(loot.mesh);
+            MATTER.Composite.remove(physicsEngine.world, loot.body);
+            loot.destroy();
+
+            // Remove from array
+            loots.splice(lootIndex, 1);
+
+            // Increment loot counter
+            lootManager.increment();
+
+            console.log('Loot collected! Total:', lootManager.getLoot());
+          }
+          return; // Don't process damage for loot
+        }
+
         // @ts-ignore
         const otherBodyVelocity = bodiesVelocities[otherBody.label];
         // @ts-ignore
@@ -289,6 +318,10 @@ async function init(
     rocket.update(time);
     asteroids.forEach(asteroid => asteroid.update(time));
     loots.forEach(loot => loot.update(time));
+
+    // Update loot counter display
+    setLabelText('lootLabel', lootManager.getLoot().toString());
+
     if (GENERAL.realTimeRender) {
       composer.render();
     }
