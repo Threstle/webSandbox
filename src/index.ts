@@ -10,7 +10,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { createRocket } from "./entities/rocket";
 import { createAsciiFilter } from "./effects/asciiFilter";
 import { getNormalizedDistance, getNormalizedPosition, to2D } from "./utils/3dUtils";
-import { ASCII, GENERAL, MAP, UI } from "./conf";
+import { ASCII, COLLISION, GENERAL, MAP, ROCKET, UI } from "./conf";
 const asciiTexture = require('../ascii.png');
 
 import './style.css';
@@ -135,6 +135,23 @@ async function init(
   MATTER.Composite.add(physicsEngine.world, [rocket.body]);
   mainCamera.position.set(rocket.mesh.position.x, rocket.mesh.position.y, UI.main.cameraDistance);
 
+  // Setup GUI controls for rocket movement
+  const rocketFolder = gui.addFolder('Rocket');
+  rocketFolder.add(ROCKET, 'speed', 0, 10000).name('Speed');
+  rocketFolder.add(ROCKET, 'angularSpeed', 0, 50).name('Angular Speed');
+  rocketFolder.add(ROCKET, 'breakForce', 0, 200).name('Break Force');
+  rocketFolder.add(ROCKET, 'angularBreakForce', 0, 2).name('Angular Break Force');
+  rocketFolder.close();
+
+  // Setup GUI controls for collision damage
+  const collisionFolder = gui.addFolder('Collision Damage');
+  collisionFolder.add(COLLISION, 'minDamageMass', 0, 200).name('Min Damage Mass');
+  collisionFolder.add(COLLISION, 'maxDamageMass', 100, 2000).name('Max Damage Mass');
+  collisionFolder.add(COLLISION, 'minDamageSpeed', 0, 20).name('Min Damage Speed');
+  collisionFolder.add(COLLISION, 'maxDamageSpeed', 5, 50).name('Max Damage Speed');
+  collisionFolder.add(COLLISION, 'maxDamage', 1, 100).name('Max Damage');
+  collisionFolder.close();
+
   // Setup collision detection for rocket damage
   MATTER.Events.on(physicsEngine, 'collisionStart', (event) => {
 
@@ -160,59 +177,24 @@ async function init(
         const relativeVelocity = MATTER.Vector.sub(otherBodyVelocity, rocketVelocity);
         const impactSpeed = MATTER.Vector.magnitude(relativeVelocity);
 
-        // Calculate damage based on mass and impact speed
-        const minDamageMass = 20;
-        const maxDamageMass = 100;
-        const minDamageSpeed = 1; // Minimum speed to cause damage
-        const maxDamageSpeed = 10; // Speed for maximum damage multiplier
-
         console.log('Mass:', otherBody.mass, 'Speed:', impactSpeed);
 
-        if (otherBody.mass >= minDamageMass && impactSpeed >= minDamageSpeed) {
+        if (otherBody.mass >= COLLISION.minDamageMass && impactSpeed >= COLLISION.minDamageSpeed) {
           // Mass damage component (0 to 1 scale)
-          const massRatio = Math.min(1, (otherBody.mass - minDamageMass) / (maxDamageMass - minDamageMass));
+          const massRatio = Math.min(1, (otherBody.mass - COLLISION.minDamageMass) / (COLLISION.maxDamageMass - COLLISION.minDamageMass));
 
           // Speed damage multiplier (0.2 to 1 scale)
-          const speedMultiplier = Math.min(1, Math.max(0.2, (impactSpeed - minDamageSpeed) / (maxDamageSpeed - minDamageSpeed)));
+          const speedMultiplier = Math.min(1, Math.max(0.2, (impactSpeed - COLLISION.minDamageSpeed) / (COLLISION.maxDamageSpeed - COLLISION.minDamageSpeed)));
 
-          // Combined damage: base damage (1-10) * speed multiplier
-          const baseDamage = Math.floor(massRatio * 10) + 1;
-          const damage = Math.min(10, Math.max(1, Math.floor(baseDamage * speedMultiplier)));
+          // Combined damage: base damage (1-maxDamage) * speed multiplier
+          const baseDamage = Math.floor(massRatio * COLLISION.maxDamage) + 1;
+          const damage = Math.min(COLLISION.maxDamage, Math.max(1, Math.floor(baseDamage * speedMultiplier)));
 
           rocket.damage(damage);
         }
       }
     });
   });
-
-  MATTER.Events.on(physicsEngine, "collisionStart", event => {
-
-
-    for (const pair of event.pairs) {
-      const a = pair.bodyA;
-      const b = pair.bodyB;
-      const isRocketInvolved = a.label === rocket.body.label || b.label === rocket.body.label;
-
-      if (isRocketInvolved) {
-
-        // @ts-ignore
-        const rocketVelocity = bodiesVelocities[rocket.body.label];
-        // @ts-ignore
-        const otherBodyVelocity = bodiesVelocities[a.label];
-
-        // Relative velocity vector
-        const rvx = b.velocity.x - a.velocity.x;
-        const rvy = b.velocity.y - a.velocity.y;
-        // Impact speed (scalar)
-        const impactSpeed = Math.sqrt(rvx * rvx + rvy * rvy);
-        console.log("Impact speed:", rocketVelocity, otherBodyVelocity);
-
-      }
-
-
-    }
-  });
-
 
 
 
@@ -225,7 +207,7 @@ async function init(
   const startPos = { x: MAP.startingPosX, y: MAP.startingPosY };
 
 
-  for (let i = 0; i < 300; i++) {
+  for (let i = 0; i < 1000; i++) {
     const randomScale = asteroidScales[Math.floor(Math.random() * asteroidScales.length)];
     const baseScale = 0.1;
     const scale = baseScale * randomScale;
@@ -268,27 +250,15 @@ async function init(
 
   let lastTimestamp = 0;
 
-  const fixedStep = 1000 / 60;
   const clock = new THREE.Clock();
-  let accumulator = 0;
-  let lastTime = new Date().getTime();
   function animate() {
 
     const now = new Date().getTime();
 
     const time = now - startTime;
 
-    const frameTime = now - lastTime;
-
-    lastTime = now;
-
-    accumulator += frameTime;
-
-    // while (accumulator >= fixedStep) {
     MATTER.Engine.update(physicsEngine, clock.getDelta());
     MATTER.Render.lookAt(physicRenderer, rocket.body, MATTER.Vector.create(200, 200));
-    // accumulator -= fixedStep;
-    // }
 
     const rocketPos = getNormalizedPosition(rocket.mesh.position);
     const radarRadius = getNormalizedDistance(UI.radius);

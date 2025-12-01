@@ -29,21 +29,21 @@ export const CAMERA = {
 
 export const ROCKET = {
     fuel: 1000,
-    // speed: 500,
     speed: 4000,
     angularSpeed: 13,
-    // breakForce: 4,
     breakForce: 40,
     angularBreakForce: 0.3,
-    // angularBreakForce: 0.03,
 }
 
 export const ASCII = {
-    // resolution: 120,
     enabled: true,
     resolution: 300,
-    // resolution: 62,
-    // limit: 0.3,
-    // ondulation: 0.1,
-    // step:10
+}
+
+export const COLLISION = {
+    minDamageMass: 0.2,
+    maxDamageMass: 1000,
+    minDamageSpeed: 0.4,
+    maxDamageSpeed: 10,
+    maxDamage: 10,
 }
