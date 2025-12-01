@@ -15,6 +15,7 @@ const asciiTexture = require('../ascii.png');
 
 import './style.css';
 import { Asteroid, createAsteroid } from "./entities/asteroid";
+import { Loot, createLoot } from "./entities/loot";
 import { getVerticesFromSVG } from "./utils/imageUtils";
 import { setupInputHandlers } from "./utils/inputManager";
 import { distance } from "./utils/2dUtils";
@@ -235,6 +236,31 @@ async function init(
 
   }
 
+  // Create loot items
+  const loots: Loot[] = [];
+  const lootScales = [0.3, 0.4, 0.5, 0.6];
+
+  for (let i = 0; i < 50; i++) {
+    const randomScale = lootScales[Math.floor(Math.random() * lootScales.length)];
+    const loot = await createLoot(randomScale);
+
+    const lootPos = { x: Math.random() * MAP.size, y: Math.random() * MAP.size };
+
+    const distanceFromStart = distance(startPos, lootPos) - loot.radius * randomScale;
+
+    const spawnLoot = () => {
+      scene.add(loot.mesh);
+      loot.setPosition(lootPos.x, lootPos.y);
+
+      loots.push(loot);
+      MATTER.Composite.add(physicsEngine.world, [loot.body]);
+    }
+
+    if (distanceFromStart > safeZoneRadius) {
+      spawnLoot();
+    }
+  }
+
   const bodiesVelocities = {};
 
   MATTER.Events.on(physicsEngine, 'beforeUpdate', () => {
@@ -260,11 +286,9 @@ async function init(
     MATTER.Engine.update(physicsEngine, clock.getDelta());
     MATTER.Render.lookAt(physicRenderer, rocket.body, MATTER.Vector.create(200, 200));
 
-    const rocketPos = getNormalizedPosition(rocket.mesh.position);
-    const radarRadius = getNormalizedDistance(UI.radius);
-
     rocket.update(time);
     asteroids.forEach(asteroid => asteroid.update(time));
+    loots.forEach(loot => loot.update(time));
     if (GENERAL.realTimeRender) {
       composer.render();
     }
