@@ -68,10 +68,10 @@ export async function createRocket(
 
   const body = MATTER.Bodies.fromVertices(0, 0, [rocketVertice], {
     friction: 0,
-    mass: 10,
+    // mass: 10,
     label: 'rocket',
   });
-  
+
 
   const ogBounds = getBoundsFromVertices(rocketVertice);
   const bodyBounds = body.bounds;
@@ -103,6 +103,20 @@ export async function createRocket(
     )
   }
 
+  const getRotatedLeftVector = (rotation: number) => {
+    return new THREE.Vector3(
+      Math.sin(rotation - Math.PI / 2),
+      Math.cos(rotation - Math.PI / 2),
+    )
+  }
+
+  const getRotatedRightVector = (rotation: number) => {
+    return new THREE.Vector3(
+      Math.sin(rotation + Math.PI / 2),
+      Math.cos(rotation + Math.PI / 2),
+    )
+  }
+
   const depleteFuel = () => {
     if (isRotatingLeft) { fuel -= 1; }
     if (isRotatingRight) { fuel -= 1; }
@@ -111,7 +125,7 @@ export async function createRocket(
     fuel -= viewRes / 50;
   }
 
-    const damage = (amount: number) => {
+  const damage = (amount: number) => {
     life = Math.max(0, life - amount);
 
     // Flash red for 1 second
@@ -142,9 +156,9 @@ export async function createRocket(
     return {
       mainThruster: rotate({ x: mesh.position.x, y: mesh.position.y - height / 2 }),
       breakThruster: rotate({ x: mesh.position.x, y: mesh.position.y + height / 2 }),
-      rightThrusterTop: rotate({ x:right, y: mesh.position.y + height / 9 }),
+      rightThrusterTop: rotate({ x: right, y: mesh.position.y + height / 9 }),
       leftThrusterBottom: rotate({ x: left, y: mesh.position.y - height / 9 }),
-      leftThrusterTop: rotate({ x:left, y: mesh.position.y + height / 9 }),
+      leftThrusterTop: rotate({ x: left, y: mesh.position.y + height / 9 }),
       rightThrusterBottom: rotate({ x: right, y: mesh.position.y - height / 4.5 }),
     }
   }
@@ -158,6 +172,10 @@ export async function createRocket(
   const update = (time: number) => {
 
     const forward = getRotatedForwardVector(mesh.rotation.z);
+    const left = getRotatedLeftVector(mesh.rotation.z);
+    const right = getRotatedRightVector(mesh.rotation.z);
+
+    const { rightThrusterBottom, rightThrusterTop, leftThrusterBottom, leftThrusterTop, mainThruster } = getPartPositions();
 
     updatePositionFromBody();
 
@@ -167,16 +185,17 @@ export async function createRocket(
       damageFlashEndTime = 0;
     }
 
-    ['accelerateLabel', 'turnLeftLabel', 'turnRightLabel', 'breakLabel'].forEach(id => {
-      setLabelColor(id, '');
-    })
 
     if (isAccelerating) {
-      MATTER.Body.setVelocity(body, new THREE.Vector2(
+      // MATTER.Body.setVelocity(body, new THREE.Vector2(
+      //   -forward.x * ROCKET.speed,
+      //   forward.y * ROCKET.speed
+      // ));
+
+      MATTER.Body.applyForce(body, getPartPositions().mainThruster, new THREE.Vector2(
         -forward.x * ROCKET.speed,
         forward.y * ROCKET.speed
       ));
-      setLabelColor('accelerateLabel', 'red');
 
       // Main thruster smoke
       if (time - thrusterCooldowns.mainThruster >= smokeCooldown) {
@@ -186,27 +205,46 @@ export async function createRocket(
       }
     }
 
-    if (isRotatingLeft) {
-      MATTER.Body.setAngularVelocity(body, ROCKET.angularSpeed);
-      setLabelColor('turnLeftLabel', 'red');
 
+    if (isRotatingLeft) {
+
+      MATTER.Body.applyForce(body, leftThrusterTop, new THREE.Vector2(
+        forward.x * ROCKET.angularSpeed,
+        -forward.y * ROCKET.angularSpeed
+      ));
+
+      // Right thruster (bottom) pushes backward relative to rocket
+      MATTER.Body.applyForce(body, rightThrusterBottom, new THREE.Vector2(
+        -forward.x * ROCKET.angularSpeed,
+        forward.y * ROCKET.angularSpeed
+      ));
+;
       // Rotation left thrusters
       const positions = getPartPositions();
 
       if (time - thrusterCooldowns.rightThrusterTop >= smokeCooldown) {
-        smokePool.spawn(positions.rightThrusterTop, { x: 0, y: 0 }, time);
+        smokePool.spawn(rightThrusterTop, { x: 0, y: 0 }, time);
         thrusterCooldowns.rightThrusterTop = time;
       }
 
       if (time - thrusterCooldowns.leftThrusterBottom >= smokeCooldown) {
-        smokePool.spawn(positions.leftThrusterBottom, { x: 0, y: 0 }, time);
+        smokePool.spawn(leftThrusterBottom, { x: 0, y: 0 }, time);
         thrusterCooldowns.leftThrusterBottom = time;
       }
     }
 
     if (isRotatingRight) {
-      MATTER.Body.setAngularVelocity(body, -ROCKET.angularSpeed);
-      setLabelColor('turnRightLabel', 'red');
+
+      MATTER.Body.applyForce(body, rightThrusterTop, new THREE.Vector2(
+        forward.x * ROCKET.angularSpeed,
+        -forward.y * ROCKET.angularSpeed
+      ));
+
+      // Left thruster (bottom) pushes backward relative to rocket
+      MATTER.Body.applyForce(body, leftThrusterBottom, new THREE.Vector2(
+        -forward.x * ROCKET.angularSpeed,
+        forward.y * ROCKET.angularSpeed
+      ));
 
       // Rotation right thrusters
       const positions = getPartPositions();
@@ -223,7 +261,6 @@ export async function createRocket(
     }
 
     if (isBreaking) {
-      setLabelColor('breakLabel', 'red');
       MATTER.Body.setSpeed(body, body.speed - ROCKET.breakForce);
       MATTER.Body.setAngularSpeed(body, body.angularSpeed - ROCKET.angularBreakForce);
 
