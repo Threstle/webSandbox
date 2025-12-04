@@ -96,7 +96,6 @@ export class GameplayManager {
     MATTER.Composite.add(this.physicsEngine.world, [this.rocket.body]);
     this.camera.position.set(this.rocket.mesh.position.x, this.rocket.mesh.position.y, UI.main.cameraDistance);
 
-    // TODO : add collision detection
 
     const startPos = { x: MAP.startingPosX, y: MAP.startingPosY };
 
