@@ -1,11 +1,12 @@
 export const GENERAL = {
-    realTimeRender:true
+    realTimeRender: true
 }
 
 export const MAP = {
     size: 5000,
     startingPosX: 2500,
     startingPosY: 2500,
+    safeZoneRadius: 300,
 }
 
 export const UI = {
@@ -23,14 +24,10 @@ export const UI = {
     }
 }
 
-export const CAMERA = {
-
-}
-
 export const ROCKET = {
     fuel: 1000,
     speed: 4000,
-    angularSpeed: 13,
+    angularSpeed: 2000,
     breakForce: 40,
     angularBreakForce: 0.3,
 }
@@ -40,10 +37,20 @@ export const ASCII = {
     resolution: 300,
 }
 
+export const ASTEROIDS = {
+    scales: [0.5, 0.5, 0.5, 0.5, 0.5, 3, 4, 3, 1, 2, 4, 5, 5, 6, 7, 15],
+    baseScale: 0.1,
+    amount: 300,
+}
+
 export const COLLISION = {
     minDamageMass: 0.2,
     maxDamageMass: 1000,
     minDamageSpeed: 0.4,
     maxDamageSpeed: 10,
     maxDamage: 10,
+}
+
+export const LOOT = {
+    scales: [0.3, 0.4, 0.5, 0.6]
 }
