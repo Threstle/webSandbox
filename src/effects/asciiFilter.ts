@@ -72,10 +72,11 @@ export async function createAsciiFilter(
         asciiFilter.enabled = value;
     });
 
-    const asciiWithUpdate = addFunction(asciiFilter, 'update', (time: number,radius:number,res:number) => {       
-        if(radius){
-            asciiFilter.material.uniforms.uRadius.value = radius;
-        }
+    const asciiWithUpdate = addFunction(asciiFilter, 'update', (radius:number) => {  
+        // TODO : check but I don't think this is needed     
+        // if(radius){
+        //     asciiFilter.material.uniforms.uRadius.value = radius;
+        // }
     });
 
     return completeAssign(asciiWithUpdate,{
