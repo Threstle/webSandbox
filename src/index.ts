@@ -7,20 +7,15 @@ import GUI from 'lil-gui';
 import { container } from "./utils/autoinject";
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { createRocket } from "./entities/rocket";
 import { createAsciiFilter } from "./effects/asciiFilter";
-import { getNormalizedDistance, getNormalizedPosition, to2D } from "./utils/3dUtils";
-import { ASCII, COLLISION, GENERAL, MAP, ROCKET, UI } from "./conf";
+import { ASCII, COLLISION, GENERAL, MAP, ROCKET, UI, ASTEROIDS, LOOT } from "./conf";
 const asciiTexture = require('../ascii.png');
 
 import './style.css';
-import { Asteroid, createAsteroid } from "./entities/asteroid";
-import { Loot, createLoot } from "./entities/loot";
 import { getVerticesFromSVG } from "./utils/imageUtils";
-import { setupInputHandlers } from "./utils/inputManager";
-import { distance } from "./utils/2dUtils";
 import { LootManager } from "./utils/lootManager";
 import { setLabelText } from "./utils/uiUtils";
+import { GameplayManager } from "./utils/gameplayManager";
 
 function createRenderer(
   canvas: HTMLCanvasElement,
@@ -42,7 +37,6 @@ function createRenderer(
 
 
 async function init(
-  textureLoader = container.resolve<THREE.TextureLoader>("TextureLoader"),
   gui = container.resolve<GUI>("GUI")
 ): Promise<() => void> {
 
@@ -79,67 +73,30 @@ async function init(
 
   // Get canvases from DOM
   const mainCanvas = document.getElementById("main") as HTMLCanvasElement;
-  const reliefCanvas = document.getElementById("relief") as HTMLCanvasElement;
 
   const composer = createRenderer(mainCanvas, UI.main.cameraClear);
-  const reliefComposer = createRenderer(reliefCanvas, 0x000000, {
-    width: UI.side.size,
-    height: UI.side.size,
-  });
 
-  // Init physics
-  const physicsEngine = MATTER.Engine.create({
-    gravity: {
-      x: 0,
-      y: 0,
-      scale: 0
-    }
-  });
-
-  // create renderer
-  const physicRenderer = MATTER.Render.create({
-    canvas: document.getElementById('physics') as HTMLCanvasElement,
-    engine: physicsEngine,
-    options: {
-      width: 200,
-      height: 200,
-      // height: window.innerHeight,
-      // width: window.innerWidth,
-      showVelocity: true,
-      showAngleIndicator: true,
-    }
-  });
-
-  MATTER.Render.run(physicRenderer);
-
-  const scene = new THREE.Scene();
+  const lootManager = new LootManager();
 
   // Create the cameras
-  const mainCamera = new THREE.OrthographicCamera(window.innerWidth / - 1, window.innerWidth / 1, window.innerHeight / 1, window.innerHeight / - 1, UI.main.cameraNear, UI.main.cameraFar);
-
-  const sideCamera = new THREE.PerspectiveCamera();
-  sideCamera.position.set(UI.side.distance, UI.side.distance, UI.side.cameraDistance);
+  const camera = new THREE.OrthographicCamera(window.innerWidth / - 1, window.innerWidth / 1, window.innerHeight / 1, window.innerHeight / - 1, UI.main.cameraNear, UI.main.cameraFar);
 
 
+  const gameplayManager = new GameplayManager(
+    camera,
+    lootManager
+  );
+  await gameplayManager.initLevel();
 
-  const renderPass = new RenderPass(scene, mainCamera);
-  const sideRenderPass = new RenderPass(scene, sideCamera);
+
+  const renderPass = new RenderPass(gameplayManager.getScene(), camera);
 
   const asciiFilter = await createAsciiFilter(asciiTexture, { ratio: mainCanvas.width / mainCanvas.height, enabled: ASCII.enabled });
   composer.addPass(renderPass);
   composer.addPass(asciiFilter);
 
-  reliefComposer.addPass(sideRenderPass);
 
-  const rocket = await createRocket(scene);
-  rocket.setPosition(MAP.size / 2, MAP.size / 2);
 
-  scene.add(rocket.mesh);
-  MATTER.Composite.add(physicsEngine.world, [rocket.body]);
-  mainCamera.position.set(rocket.mesh.position.x, rocket.mesh.position.y, UI.main.cameraDistance);
-
-  // Initialize loot manager
-  const lootManager = new LootManager();
 
   // Setup GUI controls for rocket movement
   const rocketFolder = gui.addFolder('Rocket');
@@ -158,149 +115,6 @@ async function init(
   collisionFolder.add(COLLISION, 'maxDamage', 1, 100).name('Max Damage');
   collisionFolder.close();
 
-  // Setup collision detection for rocket damage and loot collection
-  MATTER.Events.on(physicsEngine, 'collisionStart', (event) => {
-
-
-    event.pairs.forEach((pair) => {
-
-      // Check if rocket is involved in collision
-      const isRocketInvolved = pair.bodyA.label === rocket.body.label || pair.bodyB.label === rocket.body.label;
-
-
-      if (isRocketInvolved) {
-
-
-        // Get the other body (the one that hit the rocket)
-        const rocketBody = pair.bodyA.label === rocket.body.label ? pair.bodyA : pair.bodyB;
-        const otherBody = pair.bodyA.label === rocket.body.label ? pair.bodyB : pair.bodyA;
-
-        // Check if it's a loot collision
-        if (otherBody.label.startsWith('loot-')) {
-          // Find and remove the loot
-          const lootIndex = loots.findIndex(loot => loot.body.label === otherBody.label);
-          if (lootIndex > -1) {
-            const loot = loots[lootIndex];
-
-            // Remove from scene and physics world
-            scene.remove(loot.mesh);
-            MATTER.Composite.remove(physicsEngine.world, loot.body);
-            loot.destroy();
-
-            // Remove from array
-            loots.splice(lootIndex, 1);
-
-            // Increment loot counter
-            lootManager.increment();
-
-            console.log('Loot collected! Total:', lootManager.getLoot());
-          }
-          return; // Don't process damage for loot
-        }
-
-        // @ts-ignore
-        const otherBodyVelocity = bodiesVelocities[otherBody.label];
-        // @ts-ignore
-        const rocketVelocity = bodiesVelocities[rocketBody.label];
-
-        // Calculate relative velocity (impact speed)
-        const relativeVelocity = MATTER.Vector.sub(otherBodyVelocity, rocketVelocity);
-        const impactSpeed = MATTER.Vector.magnitude(relativeVelocity);
-
-        console.log('Mass:', otherBody.mass, 'Speed:', impactSpeed);
-
-        if (otherBody.mass >= COLLISION.minDamageMass && impactSpeed >= COLLISION.minDamageSpeed) {
-          // Mass damage component (0 to 1 scale)
-          const massRatio = Math.min(1, (otherBody.mass - COLLISION.minDamageMass) / (COLLISION.maxDamageMass - COLLISION.minDamageMass));
-
-          // Speed damage multiplier (0.2 to 1 scale)
-          const speedMultiplier = Math.min(1, Math.max(0.2, (impactSpeed - COLLISION.minDamageSpeed) / (COLLISION.maxDamageSpeed - COLLISION.minDamageSpeed)));
-
-          // Combined damage: base damage (1-maxDamage) * speed multiplier
-          const baseDamage = Math.floor(massRatio * COLLISION.maxDamage) + 1;
-          const damage = Math.min(COLLISION.maxDamage, Math.max(1, Math.floor(baseDamage * speedMultiplier)));
-
-          rocket.damage(damage);
-        }
-      }
-    });
-  });
-
-
-
-  const asteroids: Asteroid[] = [];
-  const asteroidScales = [0.5, 0.5, 0.5, 0.5, 0.5, 3, 4, 3, 1, 1, 2, 3, 3, 4, 5, 15];
-
-  const safeZoneRadius = 300; // Radius around spawn point (MAP.startingPosX, MAP.startingPosY)
-  const safeZoneSpawnChance = 0.3; // Only 30% of asteroids spawn in safe zone
-  const baseScale = 0.1;
-  const startPos = { x: MAP.startingPosX, y: MAP.startingPosY };
-
-
-  for (let i = 0; i < 1000; i++) {
-    const randomScale = asteroidScales[Math.floor(Math.random() * asteroidScales.length)];
-    const baseScale = 0.1;
-    const scale = baseScale * randomScale;
-    const asteroid = await createAsteroid(
-      asteroidVertices[Math.floor(Math.random() * asteroidVertices.length)],
-      scale
-    );
-
-    const asteroidPos = { x: Math.random() * MAP.size, y: Math.random() * MAP.size }
-
-
-    const distanceFromStart = distance(startPos, asteroidPos) - asteroid.radius * scale;
-
-    const spawnAsteroid = () => {
-      scene.add(asteroid.mesh);
-      asteroid.setPosition(asteroidPos.x, asteroidPos.y);
-
-      asteroids.push(asteroid);
-      MATTER.Composite.add(physicsEngine.world, [asteroid.body]);
-    }
-
-    if (distanceFromStart > safeZoneRadius) {
-      spawnAsteroid();
-    }
-
-  }
-
-  // Create loot items
-  const loots: Loot[] = [];
-  const lootScales = [0.3, 0.4, 0.5, 0.6];
-
-  for (let i = 0; i < 50; i++) {
-    const randomScale = lootScales[Math.floor(Math.random() * lootScales.length)];
-    const loot = await createLoot(randomScale);
-
-    const lootPos = { x: Math.random() * MAP.size, y: Math.random() * MAP.size };
-
-    const distanceFromStart = distance(startPos, lootPos) - loot.radius * randomScale;
-
-    const spawnLoot = () => {
-      scene.add(loot.mesh);
-      loot.setPosition(lootPos.x, lootPos.y);
-
-      loots.push(loot);
-      MATTER.Composite.add(physicsEngine.world, [loot.body]);
-    }
-
-    if (distanceFromStart > safeZoneRadius) {
-      spawnLoot();
-    }
-  }
-
-  const bodiesVelocities = {};
-
-  MATTER.Events.on(physicsEngine, 'beforeUpdate', () => {
-
-    physicsEngine.world.bodies.forEach(body => {
-      //@ts-ignore
-      bodiesVelocities[body.label] = body.velocity;
-    });
-
-  });
-
   let requestId = 0;
 
   let lastTimestamp = 0;
@@ -312,24 +126,16 @@ async function init(
 
     const time = now - startTime;
 
-    MATTER.Engine.update(physicsEngine, clock.getDelta());
-    MATTER.Render.lookAt(physicRenderer, rocket.body, MATTER.Vector.create(200, 200));
-
-    rocket.update(time);
-    asteroids.forEach(asteroid => asteroid.update(time));
-    loots.forEach(loot => loot.update(time));
+    gameplayManager.update(time, clock);
 
     // Update loot counter display
+    // TODO: this is terrible to put this in the loop
     setLabelText('lootLabel', lootManager.getLoot().toString());
 
     if (GENERAL.realTimeRender) {
       composer.render();
     }
-    asciiFilter.update(time, UI.radius / Math.min(window.innerHeight, window.innerWidth), rocket.viewRes);
     stats.update();
-    reliefComposer.render();
-
-    mainCamera.position.lerp(new THREE.Vector3(rocket.mesh.position.x, rocket.mesh.position.y, mainCamera.position.z), 0.1);
 
     requestId = requestAnimationFrame(animate);
 
@@ -340,14 +146,12 @@ async function init(
   }
   requestId = requestAnimationFrame(animate);
 
-  // Setup input handlers
-  const cleanupInputHandlers = setupInputHandlers({ rocket });
+
 
   return () => {
     //TODO: destroy
     window.cancelAnimationFrame(requestId);
     composer.dispose();
-    cleanupInputHandlers();
   }
 }
 
