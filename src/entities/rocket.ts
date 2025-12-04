@@ -68,7 +68,7 @@ export async function createRocket(
 
   const body = MATTER.Bodies.fromVertices(0, 0, [rocketVertice], {
     friction: 0,
-    // mass: 10,
+    mass: 10,
     label: 'rocket',
   });
 
@@ -103,26 +103,11 @@ export async function createRocket(
     )
   }
 
-  const getRotatedLeftVector = (rotation: number) => {
-    return new THREE.Vector3(
-      Math.sin(rotation - Math.PI / 2),
-      Math.cos(rotation - Math.PI / 2),
-    )
-  }
-
-  const getRotatedRightVector = (rotation: number) => {
-    return new THREE.Vector3(
-      Math.sin(rotation + Math.PI / 2),
-      Math.cos(rotation + Math.PI / 2),
-    )
-  }
-
   const depleteFuel = () => {
     if (isRotatingLeft) { fuel -= 1; }
     if (isRotatingRight) { fuel -= 1; }
     if (isAccelerating) { fuel -= 2; }
     if (isBreaking) { fuel -= 3; }
-    fuel -= viewRes / 50;
   }
 
   const damage = (amount: number) => {
@@ -172,8 +157,6 @@ export async function createRocket(
   const update = (time: number) => {
 
     const forward = getRotatedForwardVector(mesh.rotation.z);
-    const left = getRotatedLeftVector(mesh.rotation.z);
-    const right = getRotatedRightVector(mesh.rotation.z);
 
     const { rightThrusterBottom, rightThrusterTop, leftThrusterBottom, leftThrusterTop, mainThruster } = getPartPositions();
 
@@ -187,10 +170,6 @@ export async function createRocket(
 
 
     if (isAccelerating) {
-      // MATTER.Body.setVelocity(body, new THREE.Vector2(
-      //   -forward.x * ROCKET.speed,
-      //   forward.y * ROCKET.speed
-      // ));
 
       MATTER.Body.applyForce(body, getPartPositions().mainThruster, new THREE.Vector2(
         -forward.x * ROCKET.speed,
@@ -206,6 +185,7 @@ export async function createRocket(
     }
 
 
+    // TODO : take time to understand this sorcery
     if (isRotatingLeft) {
 
       MATTER.Body.applyForce(body, leftThrusterTop, new THREE.Vector2(

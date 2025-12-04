@@ -26,11 +26,11 @@ export async function createAsteroid(
     });
 
     const body = MATTER.Bodies.fromVertices(0, 0, [scaledVertices], {
-    restitution: 0,
-    friction: 0.003*scale,
-    frictionStatic: 1,
-    frictionAir: 0.05,
-        mass: 1000 * scale,
+    // restitution: 0,
+    // friction: 0.003*scale,
+    // frictionStatic: 1,
+    // frictionAir: 0.05,
+        // mass: 10 * scale,
         label: `asteroid-${uuidv4()}`,
     });
 

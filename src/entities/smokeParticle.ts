@@ -34,6 +34,7 @@ export function createSmokeParticle(
         geometry,
         material
     );
+    mesh.position.z = 0.1;
 
     MATTER.Body.setAngularVelocity(body, Math.random() * 2);
     MATTER.Body.setVelocity(body, new THREE.Vector2(Math.random() * 2, Math.random() * 2));
