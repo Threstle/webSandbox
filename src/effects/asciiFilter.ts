@@ -55,7 +55,7 @@ export async function createAsciiFilter(
             'uOpacity': { value: 1 },
             'uRes': { value: resolution },
             'uAsciiTexture': { value: loadedTexture },
-            'uRadius': { value: 0.3 },
+            'uRadius': { value: ASCII.radius },
             'uHeightRatio': { value: heightRatio },
         },
     });

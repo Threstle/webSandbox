@@ -5,12 +5,11 @@ import * as THREE from 'three';
 import { completeAssign } from '../utils/functionalUtils';
 import { Destroyable, Updatable, Vec2, Vec3 } from './../types';
 import * as Matter from 'matter-js';
+import { SMOKE } from "../conf";
 
 export interface SmokeParticle extends Destroyable, Updatable {
     mesh: THREE.Mesh;
-    body: MATTER.Body;
-    setPosition(x: number, y: number): void;
-    spawn(pos:Vec2, force?: Vec2, currentTime?: number, baseScale?: number, life?: number): void;
+    spawn(pos: Vec2, force?: Vec2, currentTime?: number, baseScale?: number, life?: number): void;
     isAlive: boolean;
     remainingLife: number;
 };
@@ -19,13 +18,9 @@ export function createSmokeParticle(
 ): SmokeParticle {
 
     let startingLife = 0;
-    let remainingLife= 0;
+    let remainingLife = 0;
     let isAlive = false;
-
-    const body = MATTER.Bodies.rectangle(0, 0, 5, 5, {
-        friction: 0,
-        mass: 0.1,
-    });
+    let velocity = new THREE.Vector2(0,0);
 
     const geometry = new THREE.PlaneGeometry(2, 2);
 
@@ -34,19 +29,14 @@ export function createSmokeParticle(
         geometry,
         material
     );
-    mesh.position.z = 0.1;
-
-    MATTER.Body.setAngularVelocity(body, Math.random() * 2);
-    MATTER.Body.setVelocity(body, new THREE.Vector2(Math.random() * 2, Math.random() * 2));
+    mesh.position.z = -0.1;
 
     const base = {
         mesh,
-        body,
     }
 
-    const updatePositionFromBody = () => {
-        mesh.position.set(body.position.x, body.position.y, mesh.position.z);
-        mesh.rotation.z = body.angle;
+    const decayVelocity = () => {
+        velocity.multiplyScalar(SMOKE.decaySpeed);
     }
 
     let lastTimestamp = 0;
@@ -56,11 +46,13 @@ export function createSmokeParticle(
 
         material.opacity = remainingLife / startingLife;
 
-        updatePositionFromBody();
 
         if (time - lastTimestamp > 10) {
             remainingLife -= 1;
             lastTimestamp = time;
+            decayVelocity();
+            mesh.position.x += velocity.x;
+            mesh.position.y += velocity.y;
         }
 
         if (remainingLife <= 0) {
@@ -71,24 +63,21 @@ export function createSmokeParticle(
     }
 
 
-    const spawn = (pos:Vec2, force: Vec2 = {x:0,y:0}, currentTime: number = 0, baseScale: number = 10, life: number = 100) => {
+    const spawn = (pos: Vec2, force: Vec2, currentTime: number = 0, baseScale: number = 10, life: number = 100) => {
         let scale = baseScale * Math.random();
 
         mesh.scale.set(scale, scale, 1);
-        MATTER.Body.scale(body, scale,scale);
-
+        
         isAlive = true;
         startingLife = life;
         remainingLife = startingLife;
         lastTimestamp = currentTime;
-        setPosition(pos.x, pos.y);
-        MATTER.Body.setVelocity(body, force);
+        mesh.position.set(pos.x, pos.y, mesh.position.z);
+        velocity.set(force.x, force.y);
     }
 
-    const setPosition = (x: number, y: number) => {
-        Matter.Body.setPosition(body, MATTER.Vector.create(x, y));
-        updatePositionFromBody();
-    }
+
+
 
     const destroy = () => {
         mesh.geometry.dispose();
@@ -99,7 +88,6 @@ export function createSmokeParticle(
         spawn,
         update,
         destroy,
-        setPosition,
         get isAlive() { return isAlive },
         get remainingLife() { return remainingLife }
     });

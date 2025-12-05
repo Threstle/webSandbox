@@ -25,6 +25,8 @@ export const UI = {
 }
 
 export const ROCKET = {
+    idleColor: 0x00DDFF,
+    damagedColor: 0xFF0000,
     fuel: 1000,
     speed: 4000,
     angularSpeed: 2000,
@@ -32,13 +34,20 @@ export const ROCKET = {
     angularBreakForce: 0.3,
 }
 
+export const SMOKE = {
+    poolSize: 1000,
+    decaySpeed: 0.93,
+    velocity:10
+}
+
 export const ASCII = {
     enabled: true,
     resolution: 300,
+    radius:0.4,
 }
 
 export const ASTEROIDS = {
-    scales: [0.5, 0.5, 0.5, 0.5, 0.5, 3, 4, 3, 1, 2, 4, 5, 5, 6, 7, 15],
+    scales: [10.5, 10.5, 10.5, 0.5, 0.5, 3, 4, 3, 1, 2, 4, 5, 5, 6, 7, 15],
     baseScale: 0.1,
     amount: 300,
 }

@@ -5,7 +5,7 @@ import { addFunction, completeAssign } from '../utils/functionalUtils';
 import { Destroyable, Updatable, Vec2, Vec3 } from './../types';
 import * as Matter from 'matter-js';
 import { setLabelColor, setLabelText } from '../utils/uiUtils';
-import { ROCKET } from '../conf';
+import { ROCKET, SMOKE } from '../conf';
 import { getVerticesFromSVG } from '../utils/imageUtils';
 import { getBoundsFromVertices } from '../utils/3dUtils';
 import { rotateAround } from '../utils/2dUtils';
@@ -37,7 +37,8 @@ export interface Rocket extends Destroyable, Updatable {
 
 
 export async function createRocket(
-  scene: THREE.Scene
+  scene: THREE.Scene,
+  smokePool: SmokeParticlePool
 ): Promise<Rocket> {
 
   let isAccelerating = false;
@@ -50,11 +51,6 @@ export async function createRocket(
   let viewRes = 0;
   let life = 100;
   let damageFlashEndTime = 0;
-  const normalColor = 0xDDDDDD;
-  const damageColor = 0xFF0000;
-
-  // Initialize smoke particle pool
-  const smokePool = new SmokeParticlePool(scene);
 
   // Individual cooldown timers for each thruster
   const thrusterCooldowns = {
@@ -74,6 +70,10 @@ export async function createRocket(
     friction: 0,
     mass: 10,
     label: 'rocket',
+    collisionFilter: {
+      category: 0x0004, // Rocket category
+      mask: 0x0001      // Only collide with default category (asteroids, loot, etc.), not smoke
+    }
   });
 
 
@@ -93,7 +93,7 @@ export async function createRocket(
   shape.setFromPoints(offsetVertices);
   const geometry = new THREE.ShapeGeometry(shape);
 
-  const material = new THREE.MeshBasicMaterial({ color: 0xDDDDDD });
+  const material = new THREE.MeshBasicMaterial({ color: ROCKET.idleColor });
   const mesh = new THREE.Mesh(
     geometry,
     material
@@ -120,7 +120,7 @@ export async function createRocket(
     life = Math.max(0, life - amount);
 
     // Flash red for 1 second
-    (material as THREE.MeshBasicMaterial).color.setHex(damageColor);
+    (material as THREE.MeshBasicMaterial).color.setHex(ROCKET.damagedColor);
     damageFlashEndTime = performance.now() + 100;
   }
 
@@ -172,7 +172,7 @@ export async function createRocket(
 
     // Handle damage flash effect
     if (damageFlashEndTime > 0 && time >= damageFlashEndTime) {
-      (material as THREE.MeshBasicMaterial).color.setHex(normalColor);
+      (material as THREE.MeshBasicMaterial).color.setHex(ROCKET.idleColor);
       damageFlashEndTime = 0;
     }
 
@@ -188,7 +188,7 @@ export async function createRocket(
       // Main thruster smoke
       if (time - thrusterCooldowns.mainThruster >= smokeCooldown) {
         const spawnPos = getPartPositions().mainThruster;
-        smokePool.spawn(spawnPos, { x: 0, y: 0 }, time, 20, 400);
+        smokePool.spawn(spawnPos, { x: forward.x*10, y: -forward.y*10 }, time, 20, 400);
         thrusterCooldowns.mainThruster = time;
       }
     }
@@ -201,7 +201,7 @@ export async function createRocket(
       ));
 
       if (time - thrusterCooldowns.leftThrusterTop >= smokeCooldown) {
-        smokePool.spawn(leftThrusterTop, { x: 0, y: 0 }, time);
+        smokePool.spawn(leftThrusterTop, { x: left.x*SMOKE.velocity, y: -left.y*SMOKE.velocity }, time);
         thrusterCooldowns.leftThrusterTop = time;
       }
     }
@@ -213,7 +213,7 @@ export async function createRocket(
       ));
 
       if (time - thrusterCooldowns.leftThrusterBottom >= smokeCooldown) {
-        smokePool.spawn(leftThrusterBottom, { x: 0, y: 0 }, time);
+        smokePool.spawn(leftThrusterBottom, { x: left.x*SMOKE.velocity, y: -left.y*SMOKE.velocity }, time);
         thrusterCooldowns.leftThrusterBottom = time;
       }
     }
@@ -225,7 +225,7 @@ export async function createRocket(
       ));
 
       if (time - thrusterCooldowns.rightThrusterTop >= smokeCooldown) {
-        smokePool.spawn(rightThrusterTop, { x: 0, y: 0 }, time);
+        smokePool.spawn(rightThrusterTop, { x: right.x*SMOKE.velocity, y: -right.y*SMOKE.velocity }, time);
         thrusterCooldowns.rightThrusterTop = time;
       }
     }
@@ -237,7 +237,7 @@ export async function createRocket(
       ));
 
       if (time - thrusterCooldowns.rightThrusterBottom >= smokeCooldown) {
-        smokePool.spawn(rightThrusterBottom, { x: 0, y: 0 }, time);
+        smokePool.spawn(rightThrusterBottom, { x: right.x*SMOKE.velocity, y: -right.y*SMOKE.velocity }, time);
         thrusterCooldowns.rightThrusterBottom = time;
       }
     }
@@ -274,6 +274,7 @@ export async function createRocket(
   const destroy = () => {
     mesh.geometry.dispose();
     mesh.material.dispose();
+    smokePool.destroy();
   }
 
   return completeAssign(base, {

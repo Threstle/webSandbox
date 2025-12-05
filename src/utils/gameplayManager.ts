@@ -8,6 +8,7 @@ import { getVerticesFromSVG } from './imageUtils';
 import { createLoot, Loot } from '../entities/loot';
 import { LootManager } from './lootManager';
 import { setupInputHandlers } from './inputManager';
+import { SmokeParticlePool } from './smokeParticlePool';
 
 export class GameplayManager {
 
@@ -50,6 +51,7 @@ export class GameplayManager {
     });
 
     MATTER.Render.run(this.physicRenderer);
+
   }
 
   public getScene(): THREE.Scene {
@@ -87,7 +89,11 @@ export class GameplayManager {
 
     this.scene = new THREE.Scene();
 
-    this.rocket = await createRocket(this.scene);
+
+        // Create smoke particle pool
+    const smokeParticlePool = new SmokeParticlePool(this.scene);
+
+    this.rocket = await createRocket(this.scene, smokeParticlePool);
     this.rocket.setPosition(MAP.size / 2, MAP.size / 2);
 
     this.scene.add(this.rocket.mesh);
