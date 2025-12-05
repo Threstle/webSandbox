@@ -58,7 +58,6 @@ export class GameplayManager {
 
   public async initLevel() {
 
-    console.log('inisefsefseft')
     // TODO : move this to a data file
     // Preload every SVG
     const asteroidVertices = [
@@ -89,7 +88,6 @@ export class GameplayManager {
     this.scene = new THREE.Scene();
 
     this.rocket = await createRocket(this.scene);
-    console.log('rocket',this.rocket)
     this.rocket.setPosition(MAP.size / 2, MAP.size / 2);
 
     this.scene.add(this.rocket.mesh);
@@ -167,7 +165,6 @@ export class GameplayManager {
   public update(time: number,clock: THREE.Clock): void {
     MATTER.Engine.update(this.physicsEngine, clock.getDelta());
     // TODO : what is this for?
-    console.log(this.rocket);
     MATTER.Render.lookAt(this.physicRenderer, this.rocket.body, MATTER.Vector.create(200, 200));
 
     this.rocket.update(time);
@@ -197,7 +194,6 @@ export class GameplayManager {
     
     event.pairs.forEach((pair) => {
       
-      console.log('collide',pair.bodyB,this.rocket)
       // Check if rocket is involved in collision
       const isRocketInvolved = pair.bodyA.label === this.rocket.body.label || pair.bodyB.label === this.rocket.body.label;
 

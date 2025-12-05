@@ -10,37 +10,43 @@ export function setupInputHandlers(params: InputManagerParams): () => void {
   const { rocket } = params;
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.code === 'ArrowUp') {
+    if (e.code === 'KeyQ') {
+      rocket.isThrusterTopLeftOn = true;
+    }
+    if (e.code === 'KeyS') {
+      rocket.isThrusterBottomLeftOn = true;
+    }
+    if (e.code === 'KeyP') {
+      rocket.isThrusterTopRightOn = true;
+    }
+    if (e.code === 'KeyL') {
+      rocket.isThrusterBottomRightOn = true;
+    }
+    if (e.code === 'Space') {
       rocket.isAccelerating = true;
-      rocket.isBreaking = false;
     }
-    if (e.code === 'ArrowLeft') {
-      rocket.isRotatingLeft = true;
-      rocket.isBreaking = false;
-    }
-    if (e.code === 'ArrowRight') {
-      rocket.isRotatingRight = true;
-      rocket.isBreaking = false;
-    }
-    if (e.code === 'ArrowDown') {
+    if (e.code === 'Backspace') {
       rocket.isBreaking = true;
-      rocket.isAccelerating = false;
-      rocket.isRotatingLeft = false;
-      rocket.isRotatingRight = false;
     }
   };
 
   const handleKeyUp = (e: KeyboardEvent) => {
-    if (e.code === 'ArrowUp') {
+    if (e.code === 'KeyQ') {
+      rocket.isThrusterTopLeftOn = false;
+    }
+    if (e.code === 'KeyS') {
+      rocket.isThrusterBottomLeftOn = false;
+    }
+    if (e.code === 'KeyP') {
+      rocket.isThrusterTopRightOn = false;
+    }
+    if (e.code === 'KeyL') {
+      rocket.isThrusterBottomRightOn = false;
+    }
+    if (e.code === 'Space') {
       rocket.isAccelerating = false;
     }
-    if (e.code === 'ArrowLeft') {
-      rocket.isRotatingLeft = false;
-    }
-    if (e.code === 'ArrowRight') {
-      rocket.isRotatingRight = false;
-    }
-    if (e.code === 'ArrowDown') {
+    if (e.code === 'Backspace') {
       rocket.isBreaking = false;
     }
   };

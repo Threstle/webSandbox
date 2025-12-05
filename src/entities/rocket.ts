@@ -25,8 +25,10 @@ export interface Rocket extends Destroyable, Updatable {
   body: MATTER.Body;
   viewRes: number;
   isAccelerating: boolean;
-  isRotatingLeft: boolean;
-  isRotatingRight: boolean;
+  isThrusterBottomLeftOn: boolean;
+  isThrusterTopLeftOn: boolean;
+  isThrusterBottomRightOn: boolean;
+  isThrusterTopRightOn: boolean;
   isBreaking: boolean;
   life: number;
   damage(amount: number): void;
@@ -39,8 +41,10 @@ export async function createRocket(
 ): Promise<Rocket> {
 
   let isAccelerating = false;
-  let isRotatingLeft = false;
-  let isRotatingRight = false;
+  let isThrusterBottomLeftOn = false;
+  let isThrusterTopLeftOn = false;
+  let isThrusterBottomRightOn = false;
+  let isThrusterTopRightOn = false;
   let isBreaking = false;
   let fuel = 1000;
   let viewRes = 0;
@@ -104,8 +108,10 @@ export async function createRocket(
   }
 
   const depleteFuel = () => {
-    if (isRotatingLeft) { fuel -= 1; }
-    if (isRotatingRight) { fuel -= 1; }
+    if (isThrusterBottomLeftOn) { fuel -= 1; }
+    if (isThrusterTopLeftOn) { fuel -= 1; }
+    if (isThrusterBottomRightOn) { fuel -= 1; }
+    if (isThrusterTopRightOn) { fuel -= 1; }
     if (isAccelerating) { fuel -= 2; }
     if (isBreaking) { fuel -= 3; }
   }
@@ -157,6 +163,8 @@ export async function createRocket(
   const update = (time: number) => {
 
     const forward = getRotatedForwardVector(mesh.rotation.z);
+    const left = getRotatedForwardVector(mesh.rotation.z - Math.PI / 2);
+    const right = getRotatedForwardVector(mesh.rotation.z + Math.PI / 2);
 
     const { rightThrusterBottom, rightThrusterTop, leftThrusterBottom, leftThrusterTop, mainThruster } = getPartPositions();
 
@@ -176,6 +184,7 @@ export async function createRocket(
         forward.y * ROCKET.speed
       ));
 
+
       // Main thruster smoke
       if (time - thrusterCooldowns.mainThruster >= smokeCooldown) {
         const spawnPos = getPartPositions().mainThruster;
@@ -184,28 +193,24 @@ export async function createRocket(
       }
     }
 
-
-    // TODO : take time to understand this sorcery
-    if (isRotatingLeft) {
-
+    // Individual thruster controls
+    if (isThrusterTopLeftOn) {
       MATTER.Body.applyForce(body, leftThrusterTop, new THREE.Vector2(
-        forward.x * ROCKET.angularSpeed,
-        -forward.y * ROCKET.angularSpeed
+        -left.x * ROCKET.angularSpeed,
+        left.y * ROCKET.angularSpeed
       ));
 
-      // Right thruster (bottom) pushes backward relative to rocket
-      MATTER.Body.applyForce(body, rightThrusterBottom, new THREE.Vector2(
-        -forward.x * ROCKET.angularSpeed,
-        forward.y * ROCKET.angularSpeed
-      ));
-;
-      // Rotation left thrusters
-      const positions = getPartPositions();
-
-      if (time - thrusterCooldowns.rightThrusterTop >= smokeCooldown) {
-        smokePool.spawn(rightThrusterTop, { x: 0, y: 0 }, time);
-        thrusterCooldowns.rightThrusterTop = time;
+      if (time - thrusterCooldowns.leftThrusterTop >= smokeCooldown) {
+        smokePool.spawn(leftThrusterTop, { x: 0, y: 0 }, time);
+        thrusterCooldowns.leftThrusterTop = time;
       }
+    }
+
+    if (isThrusterBottomLeftOn) {
+      MATTER.Body.applyForce(body, leftThrusterBottom, new THREE.Vector2(
+        -left.x * ROCKET.angularSpeed,
+        left.y * ROCKET.angularSpeed
+      ));
 
       if (time - thrusterCooldowns.leftThrusterBottom >= smokeCooldown) {
         smokePool.spawn(leftThrusterBottom, { x: 0, y: 0 }, time);
@@ -213,29 +218,26 @@ export async function createRocket(
       }
     }
 
-    if (isRotatingRight) {
-
+    if (isThrusterTopRightOn) {
       MATTER.Body.applyForce(body, rightThrusterTop, new THREE.Vector2(
-        forward.x * ROCKET.angularSpeed,
-        -forward.y * ROCKET.angularSpeed
+        -right.x * ROCKET.angularSpeed,
+        right.y * ROCKET.angularSpeed
       ));
 
-      // Left thruster (bottom) pushes backward relative to rocket
-      MATTER.Body.applyForce(body, leftThrusterBottom, new THREE.Vector2(
-        -forward.x * ROCKET.angularSpeed,
-        forward.y * ROCKET.angularSpeed
-      ));
-
-      // Rotation right thrusters
-      const positions = getPartPositions();
-
-      if (time - thrusterCooldowns.leftThrusterTop >= smokeCooldown) {
-        smokePool.spawn(positions.leftThrusterTop, { x: 0, y: 0 }, time);
-        thrusterCooldowns.leftThrusterTop = time;
+      if (time - thrusterCooldowns.rightThrusterTop >= smokeCooldown) {
+        smokePool.spawn(rightThrusterTop, { x: 0, y: 0 }, time);
+        thrusterCooldowns.rightThrusterTop = time;
       }
+    }
+
+    if (isThrusterBottomRightOn) {
+      MATTER.Body.applyForce(body, rightThrusterBottom, new THREE.Vector2(
+        -right.x * ROCKET.angularSpeed,
+        right.y * ROCKET.angularSpeed
+      ));
 
       if (time - thrusterCooldowns.rightThrusterBottom >= smokeCooldown) {
-        smokePool.spawn(positions.rightThrusterBottom, { x: 0, y: 0 }, time);
+        smokePool.spawn(rightThrusterBottom, { x: 0, y: 0 }, time);
         thrusterCooldowns.rightThrusterBottom = time;
       }
     }
@@ -284,10 +286,14 @@ export async function createRocket(
     get life() { return life },
     get isAccelerating() { return isAccelerating },
     set isAccelerating(value: boolean) { isAccelerating = value },
-    get isRotatingLeft() { return isRotatingLeft },
-    set isRotatingLeft(value: boolean) { isRotatingLeft = value },
-    get isRotatingRight() { return isRotatingRight },
-    set isRotatingRight(value: boolean) { isRotatingRight = value },
+    get isThrusterBottomLeftOn() { return isThrusterBottomLeftOn },
+    set isThrusterBottomLeftOn(value: boolean) { isThrusterBottomLeftOn = value },
+    get isThrusterTopLeftOn() { return isThrusterTopLeftOn },
+    set isThrusterTopLeftOn(value: boolean) { isThrusterTopLeftOn = value },
+    get isThrusterBottomRightOn() { return isThrusterBottomRightOn },
+    set isThrusterBottomRightOn(value: boolean) { isThrusterBottomRightOn = value },
+    get isThrusterTopRightOn() { return isThrusterTopRightOn },
+    set isThrusterTopRightOn(value: boolean) { isThrusterTopRightOn = value },
     get isBreaking() { return isBreaking },
     set isBreaking(value: boolean) { isBreaking = value },
   });
